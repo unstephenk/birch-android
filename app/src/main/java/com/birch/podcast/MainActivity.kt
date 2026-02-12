@@ -32,10 +32,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.content.ComponentName
+import android.net.Uri
+import androidx.core.content.ContextCompat
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
+import androidx.media3.common.Player
+import androidx.media3.session.MediaController
+import androidx.media3.session.SessionToken
 import com.birch.podcast.download.DownloadStore
 import com.birch.podcast.download.Downloader
 import com.birch.podcast.model.Episode
-import com.birch.podcast.playback.PlayerHolder
+import com.birch.podcast.playback.PlaybackService
+import com.birch.podcast.playback.PlaybackStore
 import com.birch.podcast.rss.RssClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -69,9 +78,11 @@ private fun PodcastScreen() {
   var error by remember { mutableStateOf<String?>(null) }
 
   val context = androidx.compose.ui.platform.LocalContext.current
-  val holder = remember { PlayerHolder(context) }
   val downloadStore = remember { DownloadStore(context) }
   val downloader = remember { Downloader(context) }
+  val playbackStore = remember { PlaybackStore(context) }
+
+  var controller by remember { mutableStateOf<MediaController?>(null) }
 
   var nowPlaying by remember { mutableStateOf<Episode?>(null) }
   var isPlaying by remember { mutableStateOf(false) }
@@ -84,40 +95,67 @@ private fun PodcastScreen() {
   val downloadJobs = remember { mutableStateMapOf<String, kotlinx.coroutines.Job>() }
 
   // Persist playback position (throttled)
-  LaunchedEffect(nowPlaying?.id) {
+  LaunchedEffect(nowPlaying?.id, controller) {
     while (true) {
       kotlinx.coroutines.delay(5_000)
-      holder.saveProgress()
+      val c = controller ?: continue
+      val ep = nowPlaying ?: continue
+      val pos = c.currentPosition
+      if (pos > 0) playbackStore.setPositionMs(ep.id, pos)
+
+      val dur = c.duration
+      if (dur > 0 && pos >= dur - 15_000) {
+        playbackStore.setCompleted(ep.id, true)
+      }
     }
   }
 
   // UI ticker for playback position/duration
-  LaunchedEffect(nowPlaying?.id) {
+  LaunchedEffect(controller) {
     while (true) {
-      positionMs = holder.player.currentPosition
-      durationMs = holder.player.duration
+      val c = controller
+      positionMs = c?.currentPosition ?: 0L
+      durationMs = c?.duration ?: 0L
       kotlinx.coroutines.delay(500)
     }
   }
 
-  DisposableEffect(holder) {
-    val listener = object : androidx.media3.common.Player.Listener {
+  // Connect to the MediaSession-backed player
+  LaunchedEffect(Unit) {
+    val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
+    val future = MediaController.Builder(context, token).buildAsync()
+    future.addListener(
+      {
+        controller = future.get()
+      },
+      ContextCompat.getMainExecutor(context)
+    )
+  }
+
+  DisposableEffect(controller) {
+    val c = controller
+    if (c == null) return@DisposableEffect onDispose { }
+
+    val listener = object : Player.Listener {
       override fun onIsPlayingChanged(isPlayingNow: Boolean) {
         isPlaying = isPlayingNow
       }
 
       override fun onPlaybackStateChanged(playbackState: Int) {
-        isPlaying = holder.player.isPlaying
-        if (playbackState == androidx.media3.common.Player.STATE_ENDED) {
-          holder.markCompletedIfFinished()
+        isPlaying = c.isPlaying
+        // completion detection
+        if (playbackState == Player.STATE_ENDED) {
+          nowPlaying?.let { playbackStore.setCompleted(it.id, true) }
         }
       }
     }
-    holder.player.addListener(listener)
+
+    c.addListener(listener)
+
     onDispose {
-      holder.player.removeListener(listener)
-      holder.saveProgress()
-      holder.release()
+      c.removeListener(listener)
+      c.release()
+      controller = null
     }
   }
 
@@ -156,17 +194,20 @@ private fun PodcastScreen() {
       isPlaying = isPlaying,
       positionMs = positionMs,
       durationMs = durationMs,
-      onSeekTo = { holder.player.seekTo(it) },
+      onSeekTo = { controller?.seekTo(it) },
       onPlayPause = {
-        if (holder.player.isPlaying) holder.player.pause() else holder.player.play()
+        val c = controller ?: return@NowPlayingBar
+        if (c.isPlaying) c.pause() else c.play()
       },
       onRewind15 = {
-        val pos = (holder.player.currentPosition - 15_000).coerceAtLeast(0)
-        holder.player.seekTo(pos)
+        val c = controller ?: return@NowPlayingBar
+        val pos = (c.currentPosition - 15_000).coerceAtLeast(0)
+        c.seekTo(pos)
       },
       onForward30 = {
-        val pos = holder.player.currentPosition + 30_000
-        holder.player.seekTo(pos)
+        val c = controller ?: return@NowPlayingBar
+        val pos = c.currentPosition + 30_000
+        c.seekTo(pos)
       }
     )
 
@@ -197,7 +238,7 @@ private fun PodcastScreen() {
 
             EpisodeRow(
               ep = ep,
-              completed = holder.isCompleted(ep.id),
+              completed = playbackStore.isCompleted(ep.id),
               downloaded = downloaded,
               downloading = downloading,
               progress = progress,
@@ -238,10 +279,33 @@ private fun PodcastScreen() {
                 downloadError = if (ok) "Deleted: ${ep.title}" else "Delete failed: ${ep.title}"
               },
               onPlay = {
-                // recompute localPath right before play
+                val c = controller ?: return@EpisodeRow
                 val lp = downloadStore.getLocalPath(ep.id)
+
+                val uri = if (lp != null) {
+                  Uri.fromFile(java.io.File(lp))
+                } else {
+                  Uri.parse(ep.audioUrl)
+                }
+
+                val item = MediaItem.Builder()
+                  .setMediaId(ep.id)
+                  .setUri(uri)
+                  .setMediaMetadata(
+                    MediaMetadata.Builder()
+                      .setTitle(ep.title)
+                      .build()
+                  )
+                  .build()
+
                 nowPlaying = ep
-                holder.playEpisode(ep, localPath = lp) // tap = play immediately
+                c.setMediaItem(item)
+                c.prepare()
+
+                val resume = playbackStore.getPositionMs(ep.id)
+                if (resume > 0) c.seekTo(resume)
+
+                c.play()
               }
             )
           }
