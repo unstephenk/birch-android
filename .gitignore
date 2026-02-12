@@ -1,0 +1,8 @@
+/.jdk/
+/.sdk/
+/.gradle/
+/.gradle-user/
+/*.zip
+/*.tar.gz
+**/build/
+
