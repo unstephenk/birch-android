@@ -14,11 +14,27 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.FastRewind
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -72,6 +88,7 @@ private fun BirchApp() {
   }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PodcastScreen() {
   val scope = rememberCoroutineScope()
@@ -209,143 +226,154 @@ private fun PodcastScreen() {
 
   LaunchedEffect(Unit) { refresh() }
 
-  Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
-    Row(
-      modifier = Modifier.fillMaxWidth(),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Text("Birch", style = MaterialTheme.typography.headlineSmall)
-      Button(onClick = { refresh() }, enabled = !loading) { Text("Refresh") }
-    }
-
-    Spacer(Modifier.padding(4.dp))
-
-    NowPlayingBar(
-      title = nowPlaying?.title,
-      isPlaying = isPlaying,
-      positionMs = positionMs,
-      durationMs = durationMs,
-      onSeekTo = { controller?.seekTo(it) },
-      onPlayPause = {
-        val c = controller ?: return@NowPlayingBar
-        if (c.isPlaying) c.pause() else c.play()
-      },
-      onRewind15 = {
-        val c = controller ?: return@NowPlayingBar
-        val pos = (c.currentPosition - 15_000).coerceAtLeast(0)
-        c.seekTo(pos)
-      },
-      onForward30 = {
-        val c = controller ?: return@NowPlayingBar
-        val pos = c.currentPosition + 30_000
-        c.seekTo(pos)
-      }
-    )
-
-    Spacer(Modifier.padding(6.dp))
-
-    if (downloadError != null) {
-      Text(downloadError!!)
-      Spacer(Modifier.padding(4.dp))
-    }
-
-    when {
-      loading -> {
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-          CircularProgressIndicator()
+  Scaffold(
+    topBar = {
+      TopAppBar(
+        title = { Text("Birch") },
+        actions = {
+          IconButton(onClick = { refresh() }, enabled = !loading) {
+            Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+          }
         }
+      )
+    }
+  ) { padding ->
+    Column(modifier = Modifier.fillMaxSize().padding(padding).padding(12.dp)) {
+      NowPlayingBar(
+        title = nowPlaying?.title,
+        isPlaying = isPlaying,
+        positionMs = positionMs,
+        durationMs = durationMs,
+        onSeekTo = { controller?.seekTo(it) },
+        onPlayPause = {
+          val c = controller ?: return@NowPlayingBar
+          if (c.isPlaying) c.pause() else c.play()
+        },
+        onRewind15 = {
+          val c = controller ?: return@NowPlayingBar
+          val pos = (c.currentPosition - 15_000).coerceAtLeast(0)
+          c.seekTo(pos)
+        },
+        onForward30 = {
+          val c = controller ?: return@NowPlayingBar
+          val pos = c.currentPosition + 30_000
+          c.seekTo(pos)
+        }
+      )
+
+      Spacer(Modifier.padding(6.dp))
+
+      if (downloadError != null) {
+        Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
+          Row(
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+          ) {
+            Text(downloadError!!, modifier = Modifier.weight(1f))
+            IconButton(onClick = { downloadError = null }) {
+              Icon(Icons.Filled.Close, contentDescription = "Dismiss")
+            }
+          }
+        }
+        Spacer(Modifier.padding(6.dp))
       }
-      error != null -> {
-        Text("Error: $error", color = MaterialTheme.colorScheme.error)
-      }
-      else -> {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-          items(episodes, key = { it.id }) { ep ->
-            val localPath = downloadStore.getLocalPath(ep.id)
-            val downloaded = localPath != null
-            val downloading = downloadingId == ep.id
 
-            val progress = downloadProgress[ep.id]
+      when {
+        loading -> {
+          Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+            CircularProgressIndicator()
+          }
+        }
+        error != null -> {
+          Text("Error: $error", color = MaterialTheme.colorScheme.error)
+        }
+        else -> {
+          LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(episodes, key = { it.id }) { ep ->
+              val localPath = downloadStore.getLocalPath(ep.id)
+              val downloaded = localPath != null
+              val downloading = downloadingId == ep.id
+              val progress = downloadProgress[ep.id]
 
-            EpisodeRow(
-              ep = ep,
-              completed = playbackStore.isCompleted(ep.id),
-              downloaded = downloaded,
-              downloading = downloading,
-              progress = progress,
-              onDownload = {
-                downloadError = null
-                downloadingId = ep.id
-                downloadProgress[ep.id] = 0f
+              EpisodeRow(
+                ep = ep,
+                completed = playbackStore.isCompleted(ep.id),
+                downloaded = downloaded,
+                downloading = downloading,
+                progress = progress,
+                onDownload = {
+                  downloadError = null
+                  downloadingId = ep.id
+                  downloadProgress[ep.id] = 0f
 
-                val job = scope.launch {
-                  try {
-                    val file = withContext(Dispatchers.IO) {
-                      downloader.download(ep) { done, total ->
-                        if (total != null && total > 0) {
-                          val p = (done.toDouble() / total.toDouble()).coerceIn(0.0, 1.0)
-                          downloadProgress[ep.id] = p.toFloat()
+                  val job = scope.launch {
+                    try {
+                      val file = withContext(Dispatchers.IO) {
+                        downloader.download(ep) { done, total ->
+                          if (total != null && total > 0) {
+                            val p = (done.toDouble() / total.toDouble()).coerceIn(0.0, 1.0)
+                            downloadProgress[ep.id] = p.toFloat()
+                          }
                         }
                       }
+                      downloadStore.setLocalPath(ep.id, file.absolutePath)
+                      downloadProgress.remove(ep.id)
+                    } catch (t: Throwable) {
+                      downloadError = t.message ?: t.toString()
+                    } finally {
+                      downloadJobs.remove(ep.id)
+                      downloadingId = null
                     }
-                    downloadStore.setLocalPath(ep.id, file.absolutePath)
-                    downloadProgress.remove(ep.id)
-                  } catch (t: Throwable) {
-                    downloadError = t.message ?: t.toString()
-                  } finally {
-                    downloadJobs.remove(ep.id)
-                    downloadingId = null
                   }
+
+                  downloadJobs[ep.id] = job
+                },
+                onCancelDownload = {
+                  downloadJobs[ep.id]?.cancel()
+                },
+                onDelete = {
+                  val ok = downloader.delete(ep.id)
+                  downloadStore.setLocalPath(ep.id, null)
+                  downloadProgress.remove(ep.id)
+                  downloadError = if (ok) "Deleted: ${ep.title}" else "Delete failed: ${ep.title}"
+                },
+                onPlay = {
+                  val c = controller ?: return@EpisodeRow
+                  val lp = downloadStore.getLocalPath(ep.id)
+
+                  val uri = if (lp != null) {
+                    Uri.fromFile(java.io.File(lp))
+                  } else {
+                    Uri.parse(ep.audioUrl)
+                  }
+
+                  val item = MediaItem.Builder()
+                    .setMediaId(ep.id)
+                    .setUri(uri)
+                    .setMediaMetadata(
+                      MediaMetadata.Builder()
+                        .setTitle(ep.title)
+                        .build()
+                    )
+                    .build()
+
+                  nowPlaying = ep
+                  c.setMediaItem(item)
+                  c.prepare()
+
+                  val resume = playbackStore.getPositionMs(ep.id)
+                  if (resume > 0) c.seekTo(resume)
+
+                  c.play()
                 }
-
-                downloadJobs[ep.id] = job
-              },
-              onCancelDownload = {
-                downloadJobs[ep.id]?.cancel()
-              },
-              onDelete = {
-                val ok = downloader.delete(ep.id)
-                downloadStore.setLocalPath(ep.id, null)
-                downloadProgress.remove(ep.id)
-                downloadError = if (ok) "Deleted: ${ep.title}" else "Delete failed: ${ep.title}"
-              },
-              onPlay = {
-                val c = controller ?: return@EpisodeRow
-                val lp = downloadStore.getLocalPath(ep.id)
-
-                val uri = if (lp != null) {
-                  Uri.fromFile(java.io.File(lp))
-                } else {
-                  Uri.parse(ep.audioUrl)
-                }
-
-                val item = MediaItem.Builder()
-                  .setMediaId(ep.id)
-                  .setUri(uri)
-                  .setMediaMetadata(
-                    MediaMetadata.Builder()
-                      .setTitle(ep.title)
-                      .build()
-                  )
-                  .build()
-
-                nowPlaying = ep
-                c.setMediaItem(item)
-                c.prepare()
-
-                val resume = playbackStore.getPositionMs(ep.id)
-                if (resume > 0) c.seekTo(resume)
-
-                c.play()
-              }
-            )
+              )
+            }
           }
         }
       }
     }
   }
-}
 
 @Composable
 private fun NowPlayingBar(
@@ -358,11 +386,16 @@ private fun NowPlayingBar(
   onRewind15: () -> Unit,
   onForward30: () -> Unit,
 ) {
-  Column(
-    modifier = Modifier
-      .fillMaxWidth()
-      .padding(vertical = 6.dp)
+  Card(
+    modifier = Modifier.fillMaxWidth(),
+    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
   ) {
+    Column(
+      modifier = Modifier
+        .fillMaxWidth()
+        .padding(12.dp)
+    ) {
     Text(
       text = if (title != null) "Now playing: $title" else "Now playing: —",
       maxLines = 1,
@@ -409,9 +442,16 @@ private fun NowPlayingBar(
     Spacer(Modifier.padding(2.dp))
 
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-      Button(onClick = onRewind15, enabled = title != null) { Text("-15s") }
-      Button(onClick = onPlayPause, enabled = title != null) { Text(if (isPlaying) "Pause" else "Play") }
-      Button(onClick = onForward30, enabled = title != null) { Text("+30s") }
+      IconButton(onClick = onRewind15, enabled = title != null) {
+        Icon(Icons.Filled.FastRewind, contentDescription = "Rewind 15 seconds")
+      }
+      IconButton(onClick = onPlayPause, enabled = title != null) {
+        Icon(if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, contentDescription = "Play/Pause")
+      }
+      IconButton(onClick = onForward30, enabled = title != null) {
+        Icon(Icons.Filled.FastForward, contentDescription = "Forward 30 seconds")
+      }
+    }
     }
   }
 }
@@ -440,28 +480,29 @@ private fun EpisodeRow(
       verticalAlignment = Alignment.CenterVertically
     ) {
       Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-        Text(ep.title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(ep.title, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
         if (!ep.pubDateRaw.isNullOrBlank()) {
           Text(ep.pubDateRaw!!, style = MaterialTheme.typography.bodySmall)
         }
         if (downloading && progress != null) {
           Text("Downloading: ${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+          if (completed) Text("Done", style = MaterialTheme.typography.labelMedium)
+          if (downloaded) Text("Offline", style = MaterialTheme.typography.labelMedium)
+        }
       }
 
       Column(horizontalAlignment = Alignment.End) {
-        if (completed) Text("Done", style = MaterialTheme.typography.bodySmall)
-        if (downloaded) Text("Offline", style = MaterialTheme.typography.bodySmall)
-
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-          Button(onClick = onDownload, enabled = !downloaded && !downloading) {
-            Text("Download")
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+          IconButton(onClick = onDownload, enabled = !downloaded && !downloading) {
+            Icon(Icons.Filled.Download, contentDescription = "Download")
           }
-          Button(onClick = onCancelDownload, enabled = downloading) {
-            Text("Cancel")
+          IconButton(onClick = onCancelDownload, enabled = downloading) {
+            Icon(Icons.Filled.Close, contentDescription = "Cancel")
           }
-          Button(onClick = onDelete, enabled = downloaded && !downloading) {
-            Text("Delete")
+          IconButton(onClick = onDelete, enabled = downloaded && !downloading) {
+            Icon(Icons.Filled.Delete, contentDescription = "Delete")
           }
         }
       }
