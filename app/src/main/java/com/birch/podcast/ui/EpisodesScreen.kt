@@ -18,15 +18,20 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.TextButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -57,6 +62,8 @@ fun EpisodesScreen(
   val episodes by vm.episodes.collectAsState()
   var query by remember { mutableStateOf("") }
   var filter by remember { mutableStateOf("All") }
+  var menuOpen by remember { mutableStateOf(false) }
+  var confirmClearPlayed by remember { mutableStateOf(false) }
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
 
@@ -91,11 +98,42 @@ fun EpisodesScreen(
           IconButton(onClick = { vm.refresh() }) {
             Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
           }
+
+          IconButton(onClick = { menuOpen = true }) {
+            Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
+          }
+          DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+              text = { Text("Clear played") },
+              onClick = {
+                menuOpen = false
+                confirmClearPlayed = true
+              }
+            )
+          }
         }
       )
     },
     snackbarHost = { SnackbarHost(snackbarHostState) },
   ) { padding ->
+    if (confirmClearPlayed) {
+      AlertDialog(
+        onDismissRequest = { confirmClearPlayed = false },
+        title = { Text("Clear played episodes?") },
+        text = { Text("This will delete all played episodes from this podcast.") },
+        confirmButton = {
+          TextButton(
+            onClick = {
+              confirmClearPlayed = false
+              vm.clearPlayed()
+              scope.launch { snackbarHostState.showSnackbar("Cleared played episodes") }
+            }
+          ) { Text("Clear") }
+        },
+        dismissButton = { TextButton(onClick = { confirmClearPlayed = false }) { Text("Cancel") } }
+      )
+    }
+
     Column(modifier = Modifier.fillMaxSize().padding(padding)) {
       OutlinedTextField(
         value = query,

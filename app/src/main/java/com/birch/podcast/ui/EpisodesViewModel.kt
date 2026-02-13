@@ -19,4 +19,8 @@ class EpisodesViewModel(
   fun refresh() {
     viewModelScope.launch { repo.refreshPodcastById(podcastId) }
   }
+
+  fun clearPlayed() {
+    viewModelScope.launch { repo.deletePlayedEpisodes(podcastId) }
+  }
 }

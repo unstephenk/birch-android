@@ -46,6 +46,10 @@ class PodcastRepository(
     refreshPodcast(podcast)
   }
 
+  suspend fun deletePlayedEpisodes(podcastId: Long) {
+    db.episodes().deletePlayedForPodcast(podcastId)
+  }
+
   suspend fun refreshPodcast(podcast: PodcastEntity) {
     val parsed = fetchAndParse(podcast.feedUrl)
 
