@@ -60,10 +60,12 @@ class PlaybackService : MediaSessionService() {
         // Notification / lockscreen buttons.
         val rewind = CommandButton.Builder()
           .setDisplayName("Rewind")
+          .setIconResId(android.R.drawable.ic_media_rew)
           .setPlayerCommand(Player.COMMAND_SEEK_BACK)
           .build()
         val fwd = CommandButton.Builder()
           .setDisplayName("Forward")
+          .setIconResId(android.R.drawable.ic_media_ff)
           .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
           .build()
         session.setCustomLayout(listOf(rewind, fwd))

@@ -103,7 +103,7 @@ private fun BirchApp() {
   // In-memory download progress, keyed by episode guid.
   val dlProgress = remember { androidx.compose.runtime.mutableStateMapOf<String, Float?>() }
   val downloadingEpisodes by repo.observeDownloadingEpisodes().collectAsState(initial = emptyList())
-  val dm = remember { context.getSystemService(DownloadManager::class.java) }
+  val downloadMgr = remember { context.getSystemService(DownloadManager::class.java) }
 
   LaunchedEffect(Unit) {
     while (true) {
@@ -114,7 +114,7 @@ private fun BirchApp() {
 
         val p = try {
           val q = DownloadManager.Query().setFilterById(id)
-          dm?.query(q)?.use { cur ->
+          downloadMgr?.query(q)?.use { cur ->
             if (!cur.moveToFirst()) return@use null
 
             val status = cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
@@ -150,7 +150,7 @@ private fun BirchApp() {
   }
 
   fun downloadEpisode(title: String, guid: String, audioUrl: String) {
-    val dm = context.getSystemService(DownloadManager::class.java) ?: return
+    val dmSvc = context.getSystemService(DownloadManager::class.java) ?: return
 
     // Some GUIDs contain characters that are illegal in filenames (or are extremely long).
     // Sanitize to avoid DownloadManager/FS exceptions.
@@ -168,7 +168,7 @@ private fun BirchApp() {
       .setDestinationInExternalFilesDir(context, "downloads", "$safeBase.mp3")
 
     val id = try {
-      dm.enqueue(baseReq)
+      dmSvc.enqueue(baseReq)
     } catch (_: SecurityException) {
       // Fallback: try again without forcing visibility.
       val fallbackReq = DownloadManager.Request(Uri.parse(audioUrl))
@@ -176,7 +176,7 @@ private fun BirchApp() {
         .setAllowedOverRoaming(true)
         .setAllowedOverMetered(true)
         .setDestinationInExternalFilesDir(context, "downloads", "$safeBase.mp3")
-      dm.enqueue(fallbackReq)
+      dmSvc.enqueue(fallbackReq)
     }
 
     scope.launch { repo.setEpisodeDownloadId(guid, id) }
@@ -190,9 +190,9 @@ private fun BirchApp() {
         val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
         if (id <= 0) return
 
-        val dm = context.getSystemService(DownloadManager::class.java) ?: return
+        val dmSvc = context.getSystemService(DownloadManager::class.java) ?: return
         val q = DownloadManager.Query().setFilterById(id)
-        val cur: Cursor = dm.query(q) ?: return
+        val cur: Cursor = dmSvc.query(q) ?: return
         cur.use {
           if (!it.moveToFirst()) return
           val status = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
@@ -510,10 +510,10 @@ private fun BirchApp() {
             onRemoveDownload = { ep ->
               scope.launch {
                 // Best-effort: remove the underlying download/file when possible.
-                val dm = context.getSystemService(DownloadManager::class.java)
+                val dmSvc = context.getSystemService(DownloadManager::class.java)
                 if (ep.downloadId != 0L) {
                   try {
-                    dm?.remove(ep.downloadId)
+                    dmSvc?.remove(ep.downloadId)
                   } catch (_: Throwable) {
                     // ignore
                   }

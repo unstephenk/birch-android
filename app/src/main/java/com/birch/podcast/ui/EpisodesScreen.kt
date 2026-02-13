@@ -303,7 +303,25 @@ private fun EpisodeListRow(
       androidx.compose.foundation.layout.Box(modifier = Modifier.width(72.dp)) {
         when {
           downloaded -> {
-            IconButton(onClick = onRemoveDownload) {
+            var confirmRemove by remember { mutableStateOf(false) }
+            if (confirmRemove) {
+              AlertDialog(
+                onDismissRequest = { confirmRemove = false },
+                title = { Text("Remove download?") },
+                text = { Text("This will delete the downloaded file for this episode.") },
+                confirmButton = {
+                  TextButton(
+                    onClick = {
+                      confirmRemove = false
+                      onRemoveDownload()
+                    }
+                  ) { Text("Remove") }
+                },
+                dismissButton = { TextButton(onClick = { confirmRemove = false }) { Text("Cancel") } }
+              )
+            }
+
+            IconButton(onClick = { confirmRemove = true }) {
               Icon(
                 Icons.Filled.Download,
                 contentDescription = "Downloaded (tap to remove)",
