@@ -24,3 +24,8 @@ fun fmtEta(sec: Long): String {
     else -> "${r}s"
   }
 }
+
+fun fmtMaybeSize(bytes: Long?): String? {
+  if (bytes == null || bytes <= 0L) return null
+  return fmtBytes(bytes)
+}

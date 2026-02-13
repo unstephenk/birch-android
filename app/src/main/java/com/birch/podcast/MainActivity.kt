@@ -104,9 +104,32 @@ private fun BirchApp() {
   val storedDark = themePrefs.darkTheme.collectAsState(initial = true).value
   val dark = storedDark ?: true
 
+
   // DB + repo
   val db = remember { AppDatabase.get(context) }
   val repo = remember { PodcastRepository(db) }
+
+  // Download cleanup (best-effort, runs on app start)
+  LaunchedEffect(Unit) {
+    val days = DownloadPrefs.autoDeleteDays(context, default = 0)
+    if (days > 0) {
+      val olderThan = System.currentTimeMillis() - (days.toLong() * 24L * 60L * 60L * 1000L)
+      runCatching {
+        val candidates = repo.listPlayedDownloadsOlderThan(olderThan)
+        candidates.forEach { ep ->
+          val local = ep.localFileUri
+          if (!local.isNullOrBlank()) {
+            runCatching {
+              val uri = Uri.parse(local)
+              context.contentResolver.delete(uri, null, null)
+            }
+          }
+          repo.clearEpisodeDownload(ep.guid)
+          repo.setEpisodeDownloadStatus(ep.guid, null, null)
+        }
+      }
+    }
+  }
 
   // In-memory download UI state, keyed by episode guid.
   val dlUi = remember { androidx.compose.runtime.mutableStateMapOf<String, com.birch.podcast.ui.DownloadUi>() }
@@ -244,7 +267,10 @@ private fun BirchApp() {
       dmSvc.enqueue(fallbackReq)
     }
 
-    scope.launch { repo.setEpisodeDownloadId(guid, id) }
+    scope.launch {
+      repo.setEpisodeDownloadId(guid, id)
+      repo.setEpisodeDownloadStatus(guid, "DOWNLOADING", null)
+    }
   }
 
   // Listen for DownloadManager completion and attach local file uri to the episode.
@@ -269,9 +295,14 @@ private fun BirchApp() {
             if (status == DownloadManager.STATUS_SUCCESSFUL) {
               val local = it.getString(it.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI)) ?: return@launch
               repo.setEpisodeLocalFileUri(ep.guid, local)
+              repo.setEpisodeDownloadStatus(ep.guid, "SAVED", null)
               Toast.makeText(context, "Download complete", Toast.LENGTH_SHORT).show()
             } else {
+              val reason = runCatching {
+                it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_REASON)).toString()
+              }.getOrNull()
               // Failed / canceled
+              repo.setEpisodeDownloadStatus(ep.guid, "FAILED", reason)
               repo.clearEpisodeDownload(ep.guid)
               Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
             }
@@ -721,6 +752,7 @@ private fun BirchApp() {
                   }
 
                   repo.clearEpisodeDownload(ep.guid)
+                  repo.setEpisodeDownloadStatus(ep.guid, null, null)
                 }
               }
             },

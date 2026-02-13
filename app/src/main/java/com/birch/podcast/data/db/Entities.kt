@@ -43,6 +43,9 @@ data class EpisodeEntity(
   // Downloads (v1)
   val localFileUri: String? = null,
   @ColumnInfo(defaultValue = "0") val downloadId: Long = 0,
+  val enclosureLengthBytes: Long? = null,
+  val downloadStatus: String? = null, // null|DOWNLOADING|SAVED|FAILED
+  val downloadError: String? = null,
 
   @ColumnInfo(defaultValue = "0") val createdAtMs: Long = System.currentTimeMillis(),
 )

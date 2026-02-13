@@ -437,6 +437,7 @@ private fun EpisodeListRow(
       Text(summary, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
     val date = formatEpochMsShort(ep.publishedAtMs)
+    val size = fmtMaybeSize(ep.enclosureLengthBytes)
     val dur = ep.durationMs.takeIf { it > 0 }?.let { fmtDurationMs(it) }
     val remaining = if (ep.durationMs > 0 && ep.lastPositionMs > 0 && ep.completed == 0) {
       fmtDurationMs((ep.durationMs - ep.lastPositionMs).coerceAtLeast(0L))
@@ -446,6 +447,7 @@ private fun EpisodeListRow(
       Spacer(Modifier.padding(2.dp))
       val bits = buildList {
         if (!date.isNullOrBlank()) add(date)
+        if (!size.isNullOrBlank()) add(size)
         if (!dur.isNullOrBlank()) add(dur)
         if (!remaining.isNullOrBlank()) add("-$remaining")
       }

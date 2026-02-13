@@ -27,6 +27,7 @@ object PodcastFeedParser {
     val guid: String,
     val title: String,
     val audioUrl: String,
+    val audioLengthBytes: Long?,
     val publishedAtMs: Long?,
     val summary: String?,
   )
@@ -46,6 +47,7 @@ object PodcastFeedParser {
     var itemTitle: String? = null
     var itemPubDate: String? = null
     var itemEnclosureUrl: String? = null
+    var itemEnclosureLength: Long? = null
     var itemGuid: String? = null
     var itemDescription: String? = null
     var itemContentEncoded: String? = null
@@ -97,11 +99,12 @@ object PodcastFeedParser {
         guid = guid,
         title = t,
         audioUrl = normalizeAudioUrl(enclosure),
+        audioLengthBytes = itemEnclosureLength,
         publishedAtMs = parseDateMs(itemPubDate),
         summary = sum,
       )
 
-      itemTitle = null; itemPubDate = null; itemEnclosureUrl = null; itemGuid = null
+      itemTitle = null; itemPubDate = null; itemEnclosureUrl = null; itemEnclosureLength = null; itemGuid = null
       itemDescription = null; itemContentEncoded = null; itemSummary = null
     }
 
@@ -119,7 +122,10 @@ object PodcastFeedParser {
               name.equals("description", ignoreCase = true) -> itemDescription = readText()
               name.equals("summary", ignoreCase = true) -> itemSummary = readText()
               name.equals("encoded", ignoreCase = true) || name.equals("content:encoded", ignoreCase = true) -> itemContentEncoded = readText()
-              name.equals("enclosure", ignoreCase = true) -> itemEnclosureUrl = parser.getAttributeValue(null, "url")
+              name.equals("enclosure", ignoreCase = true) -> {
+                itemEnclosureUrl = parser.getAttributeValue(null, "url")
+                itemEnclosureLength = parser.getAttributeValue(null, "length")?.toLongOrNull()
+              }
             }
           } else {
             // channel-level

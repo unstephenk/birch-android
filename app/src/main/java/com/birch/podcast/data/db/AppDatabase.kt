@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 
 @Database(
   entities = [PodcastEntity::class, EpisodeEntity::class, QueueItemEntity::class, PlaybackHistoryEntity::class],
-  version = 4,
+  version = 5,
   exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -34,6 +34,7 @@ class PodcastRepository(
         summary = pe.summary,
         audioUrl = pe.audioUrl,
         publishedAtMs = pe.publishedAtMs,
+        enclosureLengthBytes = pe.audioLengthBytes,
       )
     }
     db.episodes().insertAll(episodes)
@@ -72,6 +73,7 @@ class PodcastRepository(
         summary = pe.summary,
         audioUrl = pe.audioUrl,
         publishedAtMs = pe.publishedAtMs,
+        enclosureLengthBytes = pe.audioLengthBytes,
       )
     }
 
@@ -144,6 +146,14 @@ class PodcastRepository(
   suspend fun clearEpisodeDownload(guid: String) {
     db.episodes().setDownloadId(guid, 0L)
     db.episodes().setLocalFileUri(guid, null)
+  }
+
+  suspend fun setEpisodeDownloadStatus(guid: String, status: String?, error: String?) {
+    db.episodes().setDownloadStatus(guid, status, error)
+  }
+
+  suspend fun listPlayedDownloadsOlderThan(olderThanMs: Long): List<EpisodeEntity> {
+    return db.episodes().listPlayedDownloadsOlderThan(olderThanMs)
   }
 
   suspend fun addToHistory(podcastId: Long, guid: String, title: String) {

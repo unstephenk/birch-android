@@ -68,6 +68,15 @@ interface EpisodeDao {
   @Query("UPDATE episodes SET downloadId = :downloadId WHERE guid = :guid")
   suspend fun setDownloadId(guid: String, downloadId: Long)
 
+  @Query("UPDATE episodes SET enclosureLengthBytes = :bytes WHERE guid = :guid")
+  suspend fun setEnclosureLength(guid: String, bytes: Long?)
+
+  @Query("UPDATE episodes SET downloadStatus = :status, downloadError = :error WHERE guid = :guid")
+  suspend fun setDownloadStatus(guid: String, status: String?, error: String?)
+
+  @Query("SELECT * FROM episodes WHERE completed = 1 AND localFileUri IS NOT NULL AND localFileUri != '' AND lastPlayedAtMs > 0 AND lastPlayedAtMs < :olderThanMs")
+  suspend fun listPlayedDownloadsOlderThan(olderThanMs: Long): List<EpisodeEntity>
+
   @Query("SELECT * FROM episodes WHERE downloadId = :downloadId LIMIT 1")
   suspend fun getByDownloadId(downloadId: Long): EpisodeEntity?
 
