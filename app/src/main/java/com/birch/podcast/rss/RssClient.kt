@@ -9,10 +9,9 @@ import org.xmlpull.v1.XmlPullParser
 import java.security.MessageDigest
 
 /**
- * Despite the URL name, https://rss.infowars.com/Alex-mobile.html is HTML, not RSS.
  * We support:
- * - HTML index page (primary)
- * - RSS/Atom (fallback) for future compatibility
+ * - RSS/Atom (preferred)
+ * - HTML index pages (fallback)
  */
 class RssClient(
   private val http: OkHttpClient = OkHttpClient()
@@ -64,7 +63,8 @@ class RssClient(
         id = sha1(stable),
         title = title,
         pubDateRaw = null,
-        audioUrl = audioUrl
+        audioUrl = audioUrl,
+        summary = null,
       )
     }
 
@@ -96,23 +96,42 @@ class RssClient(
     var pubDate: String? = null
     var enclosureUrl: String? = null
     var guid: String? = null
+    var description: String? = null
+    var contentEncoded: String? = null
+    var summary: String? = null
 
     fun flushItem() {
       val t = title?.trim().orEmpty()
       val url = enclosureUrl?.trim().orEmpty()
+
+      // Prefer RSS description/content:encoded; fall back to Atom summary.
+      val rawSummary = listOf(contentEncoded, description, summary)
+        .firstOrNull { !it.isNullOrBlank() }
+        ?.trim()
+
+      // Descriptions are often HTML.
+      val cleanSummary = rawSummary
+        ?.let { Jsoup.parse(it).text() }
+        ?.trim()
+        ?.takeIf { it.isNotBlank() }
+
       if (t.isNotBlank() && url.isNotBlank()) {
         val stable = (guid?.trim()?.takeIf { it.isNotBlank() } ?: url)
         episodes += Episode(
           id = sha1(stable),
           title = t,
           pubDateRaw = pubDate?.trim(),
-          audioUrl = url
+          audioUrl = url,
+          summary = cleanSummary,
         )
       }
       title = null
       pubDate = null
       enclosureUrl = null
       guid = null
+      description = null
+      contentEncoded = null
+      summary = null
     }
 
     while (event != XmlPullParser.END_DOCUMENT) {
@@ -126,8 +145,14 @@ class RssClient(
               name.equals("title", ignoreCase = true) -> title = readText(parser)
               name.equals("pubDate", ignoreCase = true) -> pubDate = readText(parser)
               name.equals("guid", ignoreCase = true) -> guid = readText(parser)
+              name.equals("description", ignoreCase = true) -> description = readText(parser)
+              // Common RSS extension (namespace prefix varies; often content:encoded)
+              name.equals("encoded", ignoreCase = true) || name.equals("content:encoded", ignoreCase = true) -> contentEncoded = readText(parser)
+              // Atom
+              name.equals("summary", ignoreCase = true) -> summary = readText(parser)
               name.equals("enclosure", ignoreCase = true) -> {
-                enclosureUrl = parser.getAttributeValue(null, "url")
+                val raw = parser.getAttributeValue(null, "url")
+                enclosureUrl = raw?.let { normalizeAudioUrl(it) }
               }
             }
           }

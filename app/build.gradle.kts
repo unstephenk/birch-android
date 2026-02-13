@@ -46,8 +46,12 @@ dependencies {
   implementation("androidx.core:core-ktx:1.12.0")
   implementation("androidx.activity:activity-compose:1.8.2")
   implementation("androidx.compose.material3:material3")
+  implementation("androidx.compose.material:material-icons-extended")
   implementation("androidx.compose.ui:ui")
   implementation("androidx.compose.ui:ui-tooling-preview")
+
+  // Persist settings (theme)
+  implementation("androidx.datastore:datastore-preferences:1.1.1")
 
   // Networking + feed parse
   implementation("com.squareup.okhttp3:okhttp:4.12.0")
