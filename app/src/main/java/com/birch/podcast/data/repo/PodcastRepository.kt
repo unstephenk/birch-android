@@ -4,6 +4,8 @@ import com.birch.podcast.data.db.AppDatabase
 import com.birch.podcast.data.db.EpisodeEntity
 import com.birch.podcast.data.db.PodcastEntity
 import com.birch.podcast.rss.PodcastFeedParser
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 
@@ -58,7 +60,7 @@ class PodcastRepository(
     db.podcasts().delete(podcast.id)
   }
 
-  private suspend fun fetchAndParse(feedUrl: String): PodcastFeedParser.ParsedFeed {
+  private suspend fun fetchAndParse(feedUrl: String): PodcastFeedParser.ParsedFeed = withContext(Dispatchers.IO) {
     val req = Request.Builder()
       .url(feedUrl)
       .header("User-Agent", "Birch/0.1")
@@ -68,7 +70,7 @@ class PodcastRepository(
       if (!resp.isSuccessful) throw IllegalStateException("HTTP ${resp.code}")
       val body = resp.body ?: throw IllegalStateException("Empty body")
       val bytes = body.bytes()
-      return PodcastFeedParser.parse(feedUrl, bytes)
+      PodcastFeedParser.parse(feedUrl, bytes)
     }
   }
 }
