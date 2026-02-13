@@ -1,6 +1,7 @@
 plugins {
   id("com.android.application") version "8.2.2"
   id("org.jetbrains.kotlin.android") version "1.9.22"
+  id("com.google.devtools.ksp") version "1.9.22-1.0.17"
 }
 
 android {
@@ -52,6 +53,16 @@ dependencies {
 
   // Persist settings (theme)
   implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+  // Navigation + lifecycle
+  implementation("androidx.navigation:navigation-compose:2.7.7")
+  implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+  implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+
+  // Room (database)
+  implementation("androidx.room:room-runtime:2.6.1")
+  implementation("androidx.room:room-ktx:2.6.1")
+  ksp("androidx.room:room-compiler:2.6.1")
 
   // Networking + feed parse
   implementation("com.squareup.okhttp3:okhttp:4.12.0")

@@ -1,0 +1,55 @@
+package com.birch.podcast.data.db
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Transaction
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface PodcastDao {
+  @Query("SELECT * FROM podcasts ORDER BY id DESC")
+  fun observeAll(): Flow<List<PodcastEntity>>
+
+  @Query("SELECT * FROM podcasts WHERE id = :id")
+  suspend fun getById(id: Long): PodcastEntity?
+
+  @Insert(onConflict = OnConflictStrategy.ABORT)
+  suspend fun insert(podcast: PodcastEntity): Long
+
+  @Query("UPDATE podcasts SET lastRefreshAtMs = :ts WHERE id = :id")
+  suspend fun setLastRefresh(id: Long, ts: Long)
+
+  @Query("DELETE FROM podcasts WHERE id = :id")
+  suspend fun delete(id: Long)
+}
+
+@Dao
+interface EpisodeDao {
+  @Query("SELECT * FROM episodes WHERE podcastId = :podcastId ORDER BY publishedAtMs DESC, id DESC")
+  fun observeByPodcast(podcastId: Long): Flow<List<EpisodeEntity>>
+
+  @Query("SELECT * FROM episodes WHERE guid = :guid LIMIT 1")
+  suspend fun getByGuid(guid: String): EpisodeEntity?
+
+  @Insert(onConflict = OnConflictStrategy.IGNORE)
+  suspend fun insertAll(episodes: List<EpisodeEntity>)
+
+  @Query("SELECT COUNT(*) FROM episodes WHERE podcastId = :podcastId")
+  suspend fun countForPodcast(podcastId: Long): Int
+
+  @Query("DELETE FROM episodes WHERE podcastId = :podcastId")
+  suspend fun deleteForPodcast(podcastId: Long)
+
+  @Query(
+    "UPDATE episodes SET lastPositionMs = :positionMs, durationMs = :durationMs, completed = :completed, lastPlayedAtMs = :playedAtMs WHERE guid = :guid"
+  )
+  suspend fun updatePlayback(
+    guid: String,
+    positionMs: Long,
+    durationMs: Long,
+    completed: Int,
+    playedAtMs: Long,
+  )
+}
