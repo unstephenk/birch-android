@@ -61,6 +61,8 @@ import com.birch.podcast.ui.EpisodesViewModel
 import com.birch.podcast.ui.LibraryScreen
 import com.birch.podcast.ui.LibraryViewModel
 import com.birch.podcast.ui.NowPlayingScreen
+import com.birch.podcast.ui.QueueScreen
+import com.birch.podcast.ui.QueueViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -275,6 +277,7 @@ private fun BirchApp() {
             durationMs = durationMs,
             playbackSpeed = playbackSpeed,
             onBack = { nav.popBackStack() },
+            onOpenQueue = { nav.navigate("queue") },
             onSeekTo = { ms -> controller?.seekTo(ms) },
             onPlayPause = {
               val c = controller ?: return@NowPlayingScreen
@@ -292,6 +295,17 @@ private fun BirchApp() {
               val c = controller ?: return@NowPlayingScreen
               c.setPlaybackSpeed(speed)
               playbackSpeed = speed
+            }
+          )
+        }
+
+        composable("queue") {
+          val vm = remember { QueueViewModel(repo) }
+          QueueScreen(
+            vm = vm,
+            onBack = { nav.popBackStack() },
+            onPlayNow = { item ->
+              playEpisode(item.title, item.episodeGuid, item.audioUrl)
             }
           )
         }

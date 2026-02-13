@@ -80,6 +80,14 @@ class PodcastRepository(
     return next
   }
 
+  suspend fun removeQueueItem(id: Long) {
+    db.queue().delete(id)
+  }
+
+  suspend fun clearQueue() {
+    db.queue().clear()
+  }
+
   private suspend fun fetchAndParse(feedUrl: String): PodcastFeedParser.ParsedFeed = withContext(Dispatchers.IO) {
     val req = Request.Builder()
       .url(feedUrl)
