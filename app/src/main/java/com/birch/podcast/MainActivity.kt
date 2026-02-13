@@ -306,6 +306,8 @@ private fun BirchApp() {
   var skipSilenceEnabled by remember { mutableStateOf(PlaybackPrefs.getSkipSilence(context, false)) }
   var boostVolumeEnabled by remember { mutableStateOf(PlaybackPrefs.getBoostVolume(context, false)) }
   var nowPodcastId by remember { mutableStateOf<Long?>(null) }
+  var nowPodcastTitle by remember { mutableStateOf<String?>(null) }
+  var nowEpisodeDate by remember { mutableStateOf<String?>(null) }
   var nowTrimIntroMs by remember { mutableStateOf(0L) }
   var nowTrimOutroMs by remember { mutableStateOf(0L) }
   var chapters by remember { mutableStateOf<List<ChapterUi>>(emptyList()) }
@@ -479,6 +481,8 @@ private fun BirchApp() {
 
       // Persist and cache episode context for UI
       nowPodcastId = effectivePodcastId
+      nowPodcastTitle = effectivePodcastId?.let { id -> runCatching { db.podcasts().getById(id)?.title }.getOrNull() }
+      nowEpisodeDate = saved?.publishedAtMs?.let { ms -> com.birch.podcast.ui.formatEpochMsShort(ms) }
       nowTrimIntroMs = if (effectivePodcastId != null) PlaybackPrefs.getTrimIntroMs(context, effectivePodcastId) else 0L
       nowTrimOutroMs = if (effectivePodcastId != null) PlaybackPrefs.getTrimOutroMs(context, effectivePodcastId) else 0L
 
@@ -645,6 +649,15 @@ private fun BirchApp() {
             onAddToQueue = { ep ->
               scope.launch { repo.enqueue(ep.title, ep.guid, ep.audioUrl) }
             },
+            onPlayNext = { ep ->
+              scope.launch { repo.enqueueNext(ep.title, ep.guid, ep.audioUrl) }
+            },
+            onPlayLast = { ep ->
+              scope.launch { repo.enqueueLast(ep.title, ep.guid, ep.audioUrl) }
+            },
+            onDownloadAllUnplayed = { eps ->
+              eps.forEach { ep -> downloadEpisode(ep.title, ep.guid, ep.audioUrl) }
+            },
             onDownload = { ep ->
               downloadEpisode(ep.title, ep.guid, ep.audioUrl)
             },
@@ -718,6 +731,8 @@ private fun BirchApp() {
 
           NowPlayingScreen(
             title = nowTitle,
+            podcastTitle = nowPodcastTitle,
+            episodeDate = nowEpisodeDate,
             isPlaying = isPlaying,
             positionMs = positionMs,
             durationMs = durationMs,

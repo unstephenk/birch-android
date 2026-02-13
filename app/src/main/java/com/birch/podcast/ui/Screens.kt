@@ -61,6 +61,15 @@ fun LibraryScreen(
 ) {
   val podcasts by vm.podcasts.collectAsState()
   var confirmUnsub by remember { mutableStateOf<PodcastEntity?>(null) }
+  var query by remember { mutableStateOf("") }
+
+  val filtered = remember(podcasts, query) {
+    val q = query.trim()
+    if (q.isBlank()) podcasts
+    else podcasts.filter {
+      it.title.contains(q, ignoreCase = true) || (it.description?.contains(q, ignoreCase = true) ?: false)
+    }
+  }
 
   Scaffold(
     topBar = {
@@ -113,15 +122,35 @@ fun LibraryScreen(
         Button(onClick = onAdd) { Text("Add a feed") }
       }
     } else {
-      LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-        items(podcasts, key = { it.id }) { p ->
-          PodcastRow(
-            podcast = p,
-            vm = vm,
-            onOpen = { onOpenPodcast(p.id) },
-            onRefresh = { vm.refresh(p) },
-            onUnsubscribe = { confirmUnsub = p },
-          )
+      Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        OutlinedTextField(
+          value = query,
+          onValueChange = { query = it },
+          modifier = Modifier.fillMaxWidth().padding(12.dp),
+          label = { Text("Search podcasts") },
+          singleLine = true,
+        )
+
+        if (filtered.isEmpty()) {
+          Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+          ) {
+            Text("No matches")
+          }
+        } else {
+          LazyColumn(modifier = Modifier.fillMaxSize()) {
+            items(filtered, key = { it.id }) { p ->
+              PodcastRow(
+                podcast = p,
+                vm = vm,
+                onOpen = { onOpenPodcast(p.id) },
+                onRefresh = { vm.refresh(p) },
+                onUnsubscribe = { confirmUnsub = p },
+              )
+            }
+          }
         }
       }
     }

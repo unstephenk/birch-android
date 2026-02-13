@@ -45,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.birch.podcast.data.db.EpisodeEntity
 import kotlinx.coroutines.launch
@@ -60,11 +61,16 @@ fun EpisodesScreen(
   onDownload: (EpisodeEntity) -> Unit,
   onRemoveDownload: (EpisodeEntity) -> Unit,
   onTogglePlayed: (EpisodeEntity) -> Unit,
+  onPlayNext: (EpisodeEntity) -> Unit,
+  onPlayLast: (EpisodeEntity) -> Unit,
+  onDownloadAllUnplayed: (List<EpisodeEntity>) -> Unit,
   downloadProgress: (EpisodeEntity) -> DownloadUi?,
 ) {
   val episodes by vm.episodes.collectAsState()
+  val context = LocalContext.current
   var query by remember { mutableStateOf("") }
-  var filter by remember { mutableStateOf("All") }
+  var hidePlayed by remember { mutableStateOf(EpisodesPrefs.hidePlayed(context, default = false)) }
+  var filter by remember { mutableStateOf(if (hidePlayed) "Unplayed" else "All") }
   var menuOpen by remember { mutableStateOf(false) }
   var confirmClearPlayed by remember { mutableStateOf(false) }
   var confirmMarkAllPlayed by remember { mutableStateOf(false) }
@@ -79,11 +85,13 @@ fun EpisodesScreen(
       ep.title.contains(q, ignoreCase = true) || (ep.summary?.contains(q, ignoreCase = true) ?: false)
     }
 
-    val base = when (filter) {
+    val base0 = when (filter) {
       "Unplayed" -> searched.filter { it.completed == 0 }
       "Downloaded" -> searched.filter { !it.localFileUri.isNullOrBlank() }
       else -> searched
     }
+
+    val base = if (hidePlayed) base0.filter { it.completed == 0 } else base0
 
     // Sort: saved first, then newest first.
     base.sortedWith(
@@ -122,6 +130,26 @@ fun EpisodesScreen(
                 confirmMarkAllUnplayed = true
               }
             )
+            DropdownMenuItem(
+              text = { Text(if (hidePlayed) "Show played" else "Hide played") },
+              onClick = {
+                menuOpen = false
+                hidePlayed = !hidePlayed
+                EpisodesPrefs.setHidePlayed(context, hidePlayed)
+                filter = if (hidePlayed) "Unplayed" else filter
+              }
+            )
+
+            DropdownMenuItem(
+              text = { Text("Download all unplayed") },
+              onClick = {
+                menuOpen = false
+                val targets = episodes.filter { it.completed == 0 && it.localFileUri.isNullOrBlank() && it.downloadId == 0L }
+                if (targets.isNotEmpty()) onDownloadAllUnplayed(targets)
+                scope.launch { snackbarHostState.showSnackbar("Started ${targets.size} downloads") }
+              }
+            )
+
             DropdownMenuItem(
               text = { Text("Clear played") },
               onClick = {
@@ -222,6 +250,14 @@ fun EpisodesScreen(
                 snackbarHostState.showSnackbar("Added to queue")
               }
             },
+            onPlayNext = {
+              onPlayNext(ep)
+              scope.launch { snackbarHostState.showSnackbar("Added to play next") }
+            },
+            onPlayLast = {
+              onPlayLast(ep)
+              scope.launch { snackbarHostState.showSnackbar("Added to play last") }
+            },
             onDownload = {
               onDownload(ep)
               scope.launch {
@@ -255,6 +291,8 @@ private fun EpisodeListRow(
   ep: EpisodeEntity,
   onPlay: () -> Unit,
   onAddToQueue: () -> Unit,
+  onPlayNext: () -> Unit,
+  onPlayLast: () -> Unit,
   onDownload: () -> Unit,
   onRemoveDownload: () -> Unit,
   onTogglePlayed: () -> Unit,
@@ -265,7 +303,7 @@ private fun EpisodeListRow(
       .fillMaxWidth()
       .combinedClickable(
         onClick = onPlay,
-        onLongClick = onAddToQueue,
+        onLongClick = onPlayNext,
       )
       .padding(horizontal = 12.dp, vertical = 10.dp)
   ) {
@@ -274,6 +312,7 @@ private fun EpisodeListRow(
       horizontalArrangement = Arrangement.SpaceBetween,
       verticalAlignment = Alignment.CenterVertically
     ) {
+      var rowMenuOpen by remember { mutableStateOf(false) }
       Row(modifier = Modifier.weight(1f).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         if (ep.completed == 1) {
           Icon(
@@ -294,9 +333,27 @@ private fun EpisodeListRow(
       val downloaded = !ep.localFileUri.isNullOrBlank()
       val downloading = !downloaded && ep.downloadId != 0L
 
-      // Played toggle (fixed position)
-      IconButton(onClick = onTogglePlayed) {
-        Icon(Icons.Filled.Check, contentDescription = "Toggle played")
+      // Row menu
+      IconButton(onClick = { rowMenuOpen = true }) {
+        Icon(Icons.Filled.MoreVert, contentDescription = "Episode menu")
+      }
+      DropdownMenu(expanded = rowMenuOpen, onDismissRequest = { rowMenuOpen = false }) {
+        DropdownMenuItem(
+          text = { Text("Play next") },
+          onClick = { rowMenuOpen = false; onPlayNext() },
+        )
+        DropdownMenuItem(
+          text = { Text("Play last") },
+          onClick = { rowMenuOpen = false; onPlayLast() },
+        )
+        DropdownMenuItem(
+          text = { Text("Add to queue") },
+          onClick = { rowMenuOpen = false; onAddToQueue() },
+        )
+        DropdownMenuItem(
+          text = { Text(if (ep.completed == 1) "Mark unplayed" else "Mark played") },
+          onClick = { rowMenuOpen = false; onTogglePlayed() },
+        )
       }
 
       // Download area (fixed width so it doesn't push other buttons around)
@@ -380,9 +437,19 @@ private fun EpisodeListRow(
       Text(summary, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
     val date = formatEpochMsShort(ep.publishedAtMs)
-    if (!date.isNullOrBlank()) {
+    val dur = ep.durationMs.takeIf { it > 0 }?.let { fmtDurationMs(it) }
+    val remaining = if (ep.durationMs > 0 && ep.lastPositionMs > 0 && ep.completed == 0) {
+      fmtDurationMs((ep.durationMs - ep.lastPositionMs).coerceAtLeast(0L))
+    } else null
+
+    if (!date.isNullOrBlank() || !dur.isNullOrBlank() || !remaining.isNullOrBlank()) {
       Spacer(Modifier.padding(2.dp))
-      Text(date, style = MaterialTheme.typography.labelSmall)
+      val bits = buildList {
+        if (!date.isNullOrBlank()) add(date)
+        if (!dur.isNullOrBlank()) add(dur)
+        if (!remaining.isNullOrBlank()) add("-$remaining")
+      }
+      Text(bits.joinToString(" • "), style = MaterialTheme.typography.labelSmall)
     }
 
     if (ep.completed == 1) {

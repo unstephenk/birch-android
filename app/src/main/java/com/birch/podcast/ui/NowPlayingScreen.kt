@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun NowPlayingScreen(
   title: String?,
+  podcastTitle: String?,
+  episodeDate: String?,
   isPlaying: Boolean,
   positionMs: Long,
   durationMs: Long,
@@ -167,6 +169,17 @@ fun NowPlayingScreen(
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
       )
+      val metaBits = buildList {
+        podcastTitle?.takeIf { it.isNotBlank() }?.let { add(normalizePodcastTitle(it)) }
+        episodeDate?.takeIf { it.isNotBlank() }?.let { add(it) }
+      }
+      if (metaBits.isNotEmpty()) {
+        Text(
+          metaBits.joinToString(" • "),
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
 
       // Timeline
       if (durationMs > 0) {

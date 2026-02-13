@@ -20,6 +20,9 @@ interface QueueDao {
   @Query("SELECT COALESCE(MAX(position), 0) FROM queue_items")
   suspend fun maxPosition(): Long?
 
+  @Query("SELECT COALESCE(MIN(position), 0) FROM queue_items")
+  suspend fun minPosition(): Long?
+
   @Insert(onConflict = OnConflictStrategy.ABORT)
   suspend fun insert(item: QueueItemEntity)
 

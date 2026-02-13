@@ -100,6 +100,20 @@ class PodcastRepository(
     )
   }
 
+  suspend fun enqueueNext(title: String, guid: String, audioUrl: String) {
+    val pos = (db.queue().minPosition() ?: 0L) - 1L
+    db.queue().insert(
+      QueueItemEntity(
+        episodeGuid = guid,
+        title = title,
+        audioUrl = audioUrl,
+        position = pos,
+      )
+    )
+  }
+
+  suspend fun enqueueLast(title: String, guid: String, audioUrl: String) = enqueue(title, guid, audioUrl)
+
   suspend fun getEpisodeByGuid(guid: String) = db.episodes().getByGuid(guid)
 
   suspend fun updateEpisodePlayback(
