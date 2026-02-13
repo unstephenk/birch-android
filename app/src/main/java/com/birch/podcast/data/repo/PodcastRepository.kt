@@ -105,6 +105,23 @@ class PodcastRepository(
     db.queue().clear()
   }
 
+  suspend fun moveQueueItem(id: Long, delta: Int) {
+    if (delta == 0) return
+    val items = db.queue().list()
+    val idx = items.indexOfFirst { it.id == id }
+    if (idx == -1) return
+    val newIdx = (idx + delta).coerceIn(0, items.lastIndex)
+    if (newIdx == idx) return
+
+    val a = items[idx]
+    val b = items[newIdx]
+
+    // Swap positions without violating the unique index on position.
+    db.queue().updatePosition(a.id, -1L)
+    db.queue().updatePosition(b.id, a.position)
+    db.queue().updatePosition(a.id, b.position)
+  }
+
   private suspend fun fetchAndParse(feedUrl: String): PodcastFeedParser.ParsedFeed = withContext(Dispatchers.IO) {
     val req = Request.Builder()
       .url(feedUrl)

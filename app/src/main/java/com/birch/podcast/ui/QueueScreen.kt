@@ -13,6 +13,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,7 +66,16 @@ fun QueueScreen(
     } else {
       LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
         items(queue, key = { it.id }) { item ->
-          QueueRow(item = item, onPlayNow = { onPlayNow(item) }, onRemove = { vm.remove(item.id) })
+          val idx = queue.indexOfFirst { it.id == item.id }
+          QueueRow(
+            item = item,
+            canMoveUp = idx > 0,
+            canMoveDown = idx != -1 && idx < queue.lastIndex,
+            onMoveUp = { vm.moveUp(item.id) },
+            onMoveDown = { vm.moveDown(item.id) },
+            onPlayNow = { onPlayNow(item) },
+            onRemove = { vm.remove(item.id) },
+          )
         }
       }
     }
@@ -74,6 +85,10 @@ fun QueueScreen(
 @Composable
 private fun QueueRow(
   item: QueueItemEntity,
+  canMoveUp: Boolean,
+  canMoveDown: Boolean,
+  onMoveUp: () -> Unit,
+  onMoveDown: () -> Unit,
   onPlayNow: () -> Unit,
   onRemove: () -> Unit,
 ) {
@@ -89,7 +104,13 @@ private fun QueueRow(
       Text("Up next", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+      IconButton(onClick = onMoveUp, enabled = canMoveUp) {
+        Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Move up")
+      }
+      IconButton(onClick = onMoveDown, enabled = canMoveDown) {
+        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Move down")
+      }
       IconButton(onClick = onPlayNow) {
         Text("Play", style = MaterialTheme.typography.labelLarge)
       }

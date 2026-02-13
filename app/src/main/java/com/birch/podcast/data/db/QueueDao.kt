@@ -11,6 +11,9 @@ interface QueueDao {
   @Query("SELECT * FROM queue_items ORDER BY position ASC")
   fun observe(): Flow<List<QueueItemEntity>>
 
+  @Query("SELECT * FROM queue_items ORDER BY position ASC")
+  suspend fun list(): List<QueueItemEntity>
+
   @Query("SELECT * FROM queue_items ORDER BY position ASC LIMIT 1")
   suspend fun peek(): QueueItemEntity?
 
@@ -19,6 +22,9 @@ interface QueueDao {
 
   @Insert(onConflict = OnConflictStrategy.ABORT)
   suspend fun insert(item: QueueItemEntity)
+
+  @Query("UPDATE queue_items SET position = :position WHERE id = :id")
+  suspend fun updatePosition(id: Long, position: Long)
 
   @Query("DELETE FROM queue_items WHERE id = :id")
   suspend fun delete(id: Long)

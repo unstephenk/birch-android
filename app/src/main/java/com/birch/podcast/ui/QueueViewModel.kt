@@ -23,4 +23,12 @@ class QueueViewModel(
   fun clear() {
     viewModelScope.launch { repo.clearQueue() }
   }
+
+  fun moveUp(id: Long) {
+    viewModelScope.launch { repo.moveQueueItem(id, -1) }
+  }
+
+  fun moveDown(id: Long) {
+    viewModelScope.launch { repo.moveQueueItem(id, +1) }
+  }
 }
