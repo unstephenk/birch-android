@@ -106,14 +106,26 @@ private fun BirchApp() {
       .take(80)
       .ifBlank { guid.hashCode().toString() }
 
-    val req = DownloadManager.Request(Uri.parse(audioUrl))
+    val baseReq = DownloadManager.Request(Uri.parse(audioUrl))
       .setTitle(title)
       .setAllowedOverRoaming(true)
       .setAllowedOverMetered(true)
-      .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
+      // Some Android versions/devices reject VISIBILITY_HIDDEN for 3P apps.
+      .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
       .setDestinationInExternalFilesDir(context, "downloads", "$safeBase.mp3")
 
-    val id = dm.enqueue(req)
+    val id = try {
+      dm.enqueue(baseReq)
+    } catch (_: SecurityException) {
+      // Fallback: try again without forcing visibility.
+      val fallbackReq = DownloadManager.Request(Uri.parse(audioUrl))
+        .setTitle(title)
+        .setAllowedOverRoaming(true)
+        .setAllowedOverMetered(true)
+        .setDestinationInExternalFilesDir(context, "downloads", "$safeBase.mp3")
+      dm.enqueue(fallbackReq)
+    }
+
     scope.launch { repo.setEpisodeDownloadId(guid, id) }
   }
 
