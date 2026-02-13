@@ -8,7 +8,6 @@ import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
-import androidx.media3.session.SessionCommand
 import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -42,35 +41,30 @@ class PlaybackService : MediaSessionService() {
     mediaSession = MediaSession.Builder(this, p)
       .setId("birch_session")
       .setCallback(object : MediaSession.Callback {
-        override fun onCustomCommand(
+        override fun onConnect(
           session: MediaSession,
           controller: MediaSession.ControllerInfo,
-          customCommand: SessionCommand,
-          args: android.os.Bundle
-        ): ListenableFuture<SessionResult> {
-          val pl = session.player
-          return when (customCommand.customAction) {
-            "birch.rewind15" -> {
-              pl.seekTo((pl.currentPosition - 15_000).coerceAtLeast(0))
-              Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
-            }
-            "birch.forward30" -> {
-              pl.seekTo(pl.currentPosition + 30_000)
-              Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
-            }
-            else -> Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
-          }
+        ): MediaSession.ConnectionResult {
+          // Allow notification controller to use seek back/forward.
+          val base = super.onConnect(session, controller)
+          val sessionCommands = base.availableSessionCommands
+          val playerCommands = base.availablePlayerCommands
+            .buildUpon()
+            .add(Player.COMMAND_SEEK_BACK)
+            .add(Player.COMMAND_SEEK_FORWARD)
+            .build()
+          return MediaSession.ConnectionResult.accept(sessionCommands, playerCommands)
         }
       })
       .build().also { session ->
-        // Custom buttons (when supported by the notification / lockscreen)
+        // Notification / lockscreen buttons.
         val rewind = CommandButton.Builder()
           .setDisplayName("Rewind")
-          .setSessionCommand(SessionCommand("birch.rewind15", android.os.Bundle.EMPTY))
+          .setPlayerCommand(Player.COMMAND_SEEK_BACK)
           .build()
         val fwd = CommandButton.Builder()
           .setDisplayName("Forward")
-          .setSessionCommand(SessionCommand("birch.forward30", android.os.Bundle.EMPTY))
+          .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
           .build()
         session.setCustomLayout(listOf(rewind, fwd))
       }

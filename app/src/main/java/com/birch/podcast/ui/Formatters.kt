@@ -16,3 +16,10 @@ fun formatEpochMsWithTime(epochMs: Long?, zoneId: ZoneId = ZoneId.systemDefault(
   if (epochMs == null) return null
   return dateTimeFormatter.format(Instant.ofEpochMilli(epochMs).atZone(zoneId))
 }
+
+fun normalizePodcastTitle(title: String): String {
+  val t = title.trim()
+  // Common feed pattern: "Show Name - Publisher". Keep the show name.
+  val beforeDash = t.substringBefore(" - ", missingDelimiterValue = t).trim()
+  return if (beforeDash.isNotBlank()) beforeDash else t
+}

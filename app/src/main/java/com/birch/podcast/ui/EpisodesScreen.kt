@@ -94,7 +94,7 @@ fun EpisodesScreen(
   Scaffold(
     topBar = {
       TopAppBar(
-        title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        title = { Text(normalizePodcastTitle(title), maxLines = 1, overflow = TextOverflow.Ellipsis) },
         navigationIcon = {
           IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
         },

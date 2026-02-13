@@ -153,7 +153,7 @@ private fun PodcastRow(
         verticalAlignment = Alignment.CenterVertically
       ) {
         Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-          Text(podcast.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+          Text(normalizePodcastTitle(podcast.title), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
 
           val refreshed = formatEpochMsWithTime(podcast.lastRefreshAtMs)
           if (!refreshed.isNullOrBlank()) {
