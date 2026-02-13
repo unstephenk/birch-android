@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
@@ -294,7 +295,11 @@ private fun EpisodeListRow(
         when {
           downloaded -> {
             IconButton(onClick = onRemoveDownload) {
-              Text("Saved", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+              Icon(
+                Icons.Filled.DownloadDone,
+                contentDescription = "Downloaded (tap to remove)",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
             }
           }
 

@@ -116,6 +116,18 @@ private fun BirchApp() {
           val q = DownloadManager.Query().setFilterById(id)
           dm?.query(q)?.use { cur ->
             if (!cur.moveToFirst()) return@use null
+
+            val status = cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+            if (status == DownloadManager.STATUS_SUCCESSFUL) {
+              val local = cur.getString(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI))
+              if (!local.isNullOrBlank()) {
+                // Sometimes the broadcast receiver is delayed or missed on emulators.
+                // Ensure we persist the local URI so the UI switches to "downloaded".
+                scope.launch { repo.setEpisodeLocalFileUri(ep.guid, local) }
+              }
+              return@use 1f
+            }
+
             val total = cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
             val soFar = cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
             if (total > 0) (soFar.toFloat() / total.toFloat()).coerceIn(0f, 1f) else null
