@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -133,8 +134,19 @@ private fun BirchApp() {
       }
     }
 
-    context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-    onDispose { context.unregisterReceiver(receiver) }
+    ContextCompat.registerReceiver(
+      context,
+      receiver,
+      IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+      RECEIVER_NOT_EXPORTED,
+    )
+    onDispose {
+      try {
+        context.unregisterReceiver(receiver)
+      } catch (_: IllegalArgumentException) {
+        // If registration failed or was already unregistered, ignore.
+      }
+    }
   }
 
   // Playback controller + UI state
