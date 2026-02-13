@@ -46,9 +46,9 @@ class PodcastRepository(
 
   suspend fun getPodcastById(id: Long) = db.podcasts().getById(id)
 
-  suspend fun refreshPodcastById(podcastId: Long) {
+  suspend fun refreshPodcastById(podcastId: Long, autoQueueNewestUnplayed: Boolean = false) {
     val podcast = db.podcasts().getById(podcastId) ?: return
-    refreshPodcast(podcast)
+    refreshPodcast(podcast, autoQueueNewestUnplayed = autoQueueNewestUnplayed)
   }
 
   suspend fun deletePlayedEpisodes(podcastId: Long) {
@@ -63,7 +63,7 @@ class PodcastRepository(
     db.episodes().markAllUnplayed(podcastId)
   }
 
-  suspend fun refreshPodcast(podcast: PodcastEntity) {
+  suspend fun refreshPodcast(podcast: PodcastEntity, autoQueueNewestUnplayed: Boolean = false) {
     val parsed = fetchAndParse(podcast.feedUrl)
 
     val episodes = parsed.episodes.map { pe ->
@@ -80,6 +80,16 @@ class PodcastRepository(
 
     db.episodes().insertAll(episodes)
     db.podcasts().setLastRefresh(podcast.id, System.currentTimeMillis())
+
+    if (autoQueueNewestUnplayed) {
+      val newest = db.episodes().newestUnplayed(podcast.id)
+      if (newest != null) {
+        val exists = db.queue().countByGuid(newest.guid) > 0
+        if (!exists) {
+          enqueueLast(newest.title, newest.guid, newest.audioUrl)
+        }
+      }
+    }
   }
 
   suspend fun unsubscribe(podcast: PodcastEntity) {

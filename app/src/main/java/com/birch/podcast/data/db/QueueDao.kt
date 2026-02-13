@@ -34,4 +34,7 @@ interface QueueDao {
 
   @Query("DELETE FROM queue_items")
   suspend fun clear()
+
+  @Query("SELECT COUNT(*) FROM queue_items WHERE episodeGuid = :guid")
+  suspend fun countByGuid(guid: String): Int
 }

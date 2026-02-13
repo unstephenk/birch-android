@@ -33,6 +33,9 @@ interface EpisodeDao {
   @Query("SELECT * FROM episodes WHERE guid = :guid LIMIT 1")
   suspend fun getByGuid(guid: String): EpisodeEntity?
 
+  @Query("SELECT * FROM episodes WHERE podcastId = :podcastId AND completed = 0 ORDER BY publishedAtMs DESC, id DESC LIMIT 1")
+  suspend fun newestUnplayed(podcastId: Long): EpisodeEntity?
+
   @Query("SELECT * FROM episodes WHERE downloadId != 0 AND (localFileUri IS NULL OR localFileUri = '')")
   fun observeDownloading(): Flow<List<EpisodeEntity>>
 

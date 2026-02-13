@@ -16,8 +16,8 @@ class EpisodesViewModel(
   val episodes: StateFlow<List<EpisodeEntity>> = repo.observeEpisodes(podcastId)
     .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-  fun refresh() {
-    viewModelScope.launch { repo.refreshPodcastById(podcastId) }
+  fun refresh(autoQueueNewestUnplayed: Boolean = false) {
+    viewModelScope.launch { repo.refreshPodcastById(podcastId, autoQueueNewestUnplayed) }
   }
 
   fun clearPlayed() {

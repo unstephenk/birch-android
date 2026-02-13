@@ -55,6 +55,7 @@ import kotlinx.coroutines.launch
 fun EpisodesScreen(
   title: String,
   vm: EpisodesViewModel,
+  podcastId: Long,
   onBack: () -> Unit,
   onPlay: (EpisodeEntity) -> Unit,
   onAddToQueue: (EpisodeEntity) -> Unit,
@@ -71,6 +72,8 @@ fun EpisodesScreen(
   var query by remember { mutableStateOf("") }
   var hidePlayed by remember { mutableStateOf(EpisodesPrefs.hidePlayed(context, default = false)) }
   var filter by remember { mutableStateOf(if (hidePlayed) "Unplayed" else "All") }
+
+  var autoQueueNewest by remember { mutableStateOf(com.birch.podcast.queue.QueuePrefs.autoAddNewestUnplayed(context, podcastId, default = false)) }
   var menuOpen by remember { mutableStateOf(false) }
   var confirmClearPlayed by remember { mutableStateOf(false) }
   var confirmMarkAllPlayed by remember { mutableStateOf(false) }
@@ -108,7 +111,7 @@ fun EpisodesScreen(
           IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
         },
         actions = {
-          IconButton(onClick = { vm.refresh() }) {
+          IconButton(onClick = { vm.refresh(autoQueueNewest) }) {
             Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
           }
 
@@ -121,6 +124,15 @@ fun EpisodesScreen(
               onClick = {
                 menuOpen = false
                 confirmMarkAllPlayed = true
+              }
+            )
+
+            DropdownMenuItem(
+              text = { Text(if (autoQueueNewest) "Auto-queue newest: On" else "Auto-queue newest: Off") },
+              onClick = {
+                menuOpen = false
+                autoQueueNewest = !autoQueueNewest
+                com.birch.podcast.queue.QueuePrefs.setAutoAddNewestUnplayed(context, podcastId, autoQueueNewest)
               }
             )
             DropdownMenuItem(

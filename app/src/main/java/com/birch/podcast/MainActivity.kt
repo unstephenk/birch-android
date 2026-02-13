@@ -686,6 +686,7 @@ private fun BirchApp() {
           EpisodesScreen(
             title = title,
             vm = vm,
+            podcastId = podcastId,
             onBack = { nav.popBackStack() },
             onPlay = { ep ->
               playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId)
