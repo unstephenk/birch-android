@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.filled.QueueMusic
+import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,8 +43,12 @@ fun NowPlayingScreen(
   positionMs: Long,
   durationMs: Long,
   playbackSpeed: Float,
+  sleepTimerLabel: String?,
   onBack: () -> Unit,
   onOpenQueue: () -> Unit,
+  onSetSleepTimerOff: () -> Unit,
+  onSetSleepTimerMinutes: (Int) -> Unit,
+  onSetSleepTimerEndOfEpisode: () -> Unit,
   onSeekTo: (Long) -> Unit,
   onPlayPause: () -> Unit,
   onRewind15: () -> Unit,
@@ -51,6 +56,7 @@ fun NowPlayingScreen(
   onSetSpeed: (Float) -> Unit,
 ) {
   var speedMenuOpen by remember { mutableStateOf(false) }
+  var timerMenuOpen by remember { mutableStateOf(false) }
 
   Scaffold(
     topBar = {
@@ -65,6 +71,43 @@ fun NowPlayingScreen(
           IconButton(onClick = onOpenQueue) {
             Icon(Icons.Filled.QueueMusic, contentDescription = "Queue")
           }
+
+          IconButton(onClick = { timerMenuOpen = true }) {
+            Icon(Icons.Filled.Timer, contentDescription = "Sleep timer")
+          }
+          DropdownMenu(expanded = timerMenuOpen, onDismissRequest = { timerMenuOpen = false }) {
+            if (!sleepTimerLabel.isNullOrBlank()) {
+              DropdownMenuItem(
+                text = { Text("Timer: $sleepTimerLabel") },
+                onClick = { /* no-op */ },
+                enabled = false,
+              )
+            }
+            DropdownMenuItem(
+              text = { Text("Off") },
+              onClick = {
+                timerMenuOpen = false
+                onSetSleepTimerOff()
+              }
+            )
+            listOf(15, 30, 60).forEach { m ->
+              DropdownMenuItem(
+                text = { Text("$m min") },
+                onClick = {
+                  timerMenuOpen = false
+                  onSetSleepTimerMinutes(m)
+                }
+              )
+            }
+            DropdownMenuItem(
+              text = { Text("End of episode") },
+              onClick = {
+                timerMenuOpen = false
+                onSetSleepTimerEndOfEpisode()
+              }
+            )
+          }
+
           IconButton(onClick = { speedMenuOpen = true }) {
             Text("${playbackSpeed}x", style = MaterialTheme.typography.labelLarge)
           }

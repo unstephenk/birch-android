@@ -157,6 +157,34 @@ private fun BirchApp() {
   var durationMs by remember { mutableStateOf(0L) }
   var playbackSpeed by remember { mutableStateOf(PlaybackPrefs.getSpeed(context, 1.0f)) }
 
+  // Sleep timer
+  var sleepTimerLabel by remember { mutableStateOf<String?>(null) }
+  var sleepTimerEndOfEpisode by remember { mutableStateOf(false) }
+  var sleepTimerJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
+
+  fun clearSleepTimer() {
+    sleepTimerJob?.cancel()
+    sleepTimerJob = null
+    sleepTimerEndOfEpisode = false
+    sleepTimerLabel = null
+  }
+
+  fun setSleepTimerMinutes(minutes: Int) {
+    clearSleepTimer()
+    sleepTimerLabel = "${minutes}m"
+    sleepTimerJob = scope.launch {
+      delay(minutes * 60_000L)
+      controller?.pause()
+      clearSleepTimer()
+    }
+  }
+
+  fun setSleepTimerEndOfEpisode() {
+    clearSleepTimer()
+    sleepTimerEndOfEpisode = true
+    sleepTimerLabel = "End"
+  }
+
   LaunchedEffect(Unit) {
     // Ensure the service is started; required on some devices for stable playback.
     val intent = android.content.Intent(context, PlaybackService::class.java)
@@ -278,6 +306,13 @@ private fun BirchApp() {
             }
           }
 
+          if (sleepTimerEndOfEpisode) {
+            // Stop after this episode.
+            clearSleepTimer()
+            c.pause()
+            return
+          }
+
           // Pick the next queued item.
           scope.launch {
             val next = repo.dequeueNext() ?: return@launch
@@ -393,8 +428,12 @@ private fun BirchApp() {
             positionMs = positionMs,
             durationMs = durationMs,
             playbackSpeed = playbackSpeed,
+            sleepTimerLabel = sleepTimerLabel,
             onBack = { nav.popBackStack() },
             onOpenQueue = { nav.navigate("queue") },
+            onSetSleepTimerOff = { clearSleepTimer() },
+            onSetSleepTimerMinutes = { m -> setSleepTimerMinutes(m) },
+            onSetSleepTimerEndOfEpisode = { setSleepTimerEndOfEpisode() },
             onSeekTo = { ms -> controller?.seekTo(ms) },
             onPlayPause = {
               val c = controller ?: return@NowPlayingScreen
