@@ -43,6 +43,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -87,6 +88,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun BirchApp() {
   val context = LocalContext.current
+  val view = LocalView.current
   val scope = rememberCoroutineScope()
 
   // Theme
@@ -233,6 +235,13 @@ private fun BirchApp() {
       { controller = future.get() },
       ContextCompat.getMainExecutor(context)
     )
+  }
+
+  // Keep screen on while playing.
+  DisposableEffect(isPlaying) {
+    val prev = view.keepScreenOn
+    view.keepScreenOn = isPlaying
+    onDispose { view.keepScreenOn = prev }
   }
 
   // Keep UI in sync with controller.
