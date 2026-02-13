@@ -374,6 +374,7 @@ private fun PodcastScreen() {
       }
     }
   }
+}
 
 @Composable
 private fun NowPlayingBar(
