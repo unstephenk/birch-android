@@ -32,8 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import android.Manifest
 import android.content.ComponentName
+import android.content.pm.PackageManager
 import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -120,11 +124,30 @@ private fun PodcastScreen() {
     }
   }
 
+  // Notification permission (Android 13+; enforced on newer devices)
+  val notifPermLauncher = rememberLauncherForActivityResult(
+    contract = ActivityResultContracts.RequestPermission(),
+    onResult = { /* no-op */ }
+  )
+
+  LaunchedEffect(Unit) {
+    if (android.os.Build.VERSION.SDK_INT >= 33) {
+      val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+      if (!granted) {
+        notifPermLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+      }
+    }
+  }
+
   // Connect to the MediaSession-backed player
   LaunchedEffect(Unit) {
     // Ensure the service is started; required on some devices for stable playback.
     val intent = android.content.Intent(context, PlaybackService::class.java)
-    ContextCompat.startForegroundService(context, intent)
+    try {
+      ContextCompat.startForegroundService(context, intent)
+    } catch (_: Throwable) {
+      // If FGS start is blocked, we can still connect via session and let playback be best-effort.
+    }
 
     val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
     val future = MediaController.Builder(context, token).buildAsync()
