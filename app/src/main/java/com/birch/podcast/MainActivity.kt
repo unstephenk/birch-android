@@ -207,10 +207,12 @@ private fun BirchApp() {
   }
 
   LaunchedEffect(Unit) {
-    // Ensure the service is started; required on some devices for stable playback.
+    // Start the playback service so the Media3 SessionToken can bind.
+    // Important: don't use startForegroundService() here unless we immediately call startForeground(),
+    // otherwise some Android builds will ANR the app.
     val intent = android.content.Intent(context, PlaybackService::class.java)
     try {
-      ContextCompat.startForegroundService(context, intent)
+      context.startService(intent)
     } catch (_: Throwable) {
       // best-effort
     }
