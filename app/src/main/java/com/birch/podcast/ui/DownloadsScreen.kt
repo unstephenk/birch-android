@@ -42,11 +42,13 @@ fun DownloadsScreen(
   repo: PodcastRepository,
   onBack: () -> Unit,
   onPlay: (EpisodeEntity) -> Unit,
+  onRetry: (EpisodeEntity) -> Unit,
 ) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
   val downloading by repo.observeDownloadingEpisodes().collectAsState(initial = emptyList())
   val saved by repo.observeDownloadedEpisodes().collectAsState(initial = emptyList())
+  val failed by repo.observeFailedDownloads().collectAsState(initial = emptyList())
 
   Scaffold(
     topBar = {
@@ -102,11 +104,36 @@ fun DownloadsScreen(
                   context.contentResolver.delete(uri, null, null)
                 }
               }
-              scope.launch { repo.clearEpisodeDownload(ep.guid) }
+              scope.launch {
+                repo.clearEpisodeDownload(ep.guid)
+                repo.setEpisodeDownloadStatus(ep.guid, null, null)
+              }
             },
           )
         }
       }
+
+      item {
+        SectionHeader("Failed")
+      }
+      if (failed.isEmpty()) {
+        item { EmptyRow("No failed downloads") }
+      } else {
+        items(failed, key = { it.id }) { ep ->
+          DownloadRow(
+            ep = ep,
+            status = "Failed",
+            onClick = { onRetry(ep) },
+            onRemove = {
+              scope.launch {
+                repo.setEpisodeDownloadStatus(ep.guid, null, null)
+                repo.clearEpisodeDownload(ep.guid)
+              }
+            },
+          )
+        }
+      }
+
       item { Spacer(Modifier.padding(12.dp)) }
     }
   }

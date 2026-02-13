@@ -18,6 +18,7 @@ class PodcastRepository(
   fun observeEpisodes(podcastId: Long) = db.episodes().observeByPodcast(podcastId)
   fun observeDownloadingEpisodes() = db.episodes().observeDownloading()
   fun observeDownloadedEpisodes() = db.episodes().observeDownloaded()
+  fun observeFailedDownloads() = db.episodes().observeFailedDownloads()
   fun observeQueue() = db.queue().observe()
   fun observePlaybackHistory(limit: Int = 50) = db.history().observeRecent(limit)
 

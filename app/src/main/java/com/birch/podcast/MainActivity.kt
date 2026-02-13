@@ -72,6 +72,7 @@ import com.birch.podcast.ui.EpisodesScreen
 import com.birch.podcast.ui.EpisodesViewModel
 import com.birch.podcast.ui.LibraryScreen
 import com.birch.podcast.ui.LibraryViewModel
+import com.birch.podcast.ui.SettingsScreen
 import androidx.media3.common.Metadata
 import androidx.media3.extractor.metadata.id3.ChapterFrame
 import androidx.media3.session.SessionCommand
@@ -652,6 +653,7 @@ private fun BirchApp() {
             onAdd = { nav.navigate("add") },
             onOpenDownloads = { nav.navigate("downloads") },
             onOpenHistory = { nav.navigate("history") },
+            onOpenSettings = { nav.navigate("settings") },
             onOpenPodcast = { id -> nav.navigate("podcast/$id") },
           )
         }
@@ -870,7 +872,16 @@ private fun BirchApp() {
             repo = repo,
             onBack = { nav.popBackStack() },
             onPlay = { ep -> playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId) },
+            onRetry = { ep ->
+              // Clear failure state then re-enqueue.
+              scope.launch { repo.setEpisodeDownloadStatus(ep.guid, null, null) }
+              downloadEpisode(ep.title, ep.guid, ep.audioUrl)
+            },
           )
+        }
+
+        composable("settings") {
+          SettingsScreen(onBack = { nav.popBackStack() })
         }
 
         composable("history") {
