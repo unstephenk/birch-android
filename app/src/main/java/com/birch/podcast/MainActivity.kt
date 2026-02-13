@@ -376,6 +376,12 @@ private fun BirchApp() {
             },
             onDownload = { ep ->
               downloadEpisode(ep.title, ep.guid, ep.audioUrl)
+            },
+            onRemoveDownload = { ep ->
+              scope.launch {
+                // Best-effort: we keep the file for now; just detach it from the episode.
+                repo.clearEpisodeDownload(ep.guid)
+              }
             }
           )
         }

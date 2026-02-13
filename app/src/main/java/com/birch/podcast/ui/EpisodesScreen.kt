@@ -44,6 +44,7 @@ fun EpisodesScreen(
   onPlay: (EpisodeEntity) -> Unit,
   onAddToQueue: (EpisodeEntity) -> Unit,
   onDownload: (EpisodeEntity) -> Unit,
+  onRemoveDownload: (EpisodeEntity) -> Unit,
 ) {
   val episodes by vm.episodes.collectAsState()
   val snackbarHostState = remember { SnackbarHostState() }
@@ -77,6 +78,12 @@ fun EpisodesScreen(
               snackbarHostState.showSnackbar("Download started")
             }
           },
+          onRemoveDownload = {
+            onRemoveDownload(ep)
+            scope.launch {
+              snackbarHostState.showSnackbar("Download removed")
+            }
+          },
         )
       }
     }
@@ -90,6 +97,7 @@ private fun EpisodeListRow(
   onPlay: () -> Unit,
   onAddToQueue: () -> Unit,
   onDownload: () -> Unit,
+  onRemoveDownload: () -> Unit,
 ) {
   Column(
     modifier = Modifier
@@ -114,8 +122,15 @@ private fun EpisodeListRow(
       )
 
       val downloaded = !ep.localFileUri.isNullOrBlank()
-      IconButton(onClick = onDownload, enabled = !downloaded) {
-        Icon(Icons.Filled.Download, contentDescription = "Download")
+      if (downloaded) {
+        Text("Saved", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+        IconButton(onClick = onRemoveDownload) {
+          Text("Remove", style = MaterialTheme.typography.labelSmall)
+        }
+      } else {
+        IconButton(onClick = onDownload) {
+          Icon(Icons.Filled.Download, contentDescription = "Download")
+        }
       }
     }
 

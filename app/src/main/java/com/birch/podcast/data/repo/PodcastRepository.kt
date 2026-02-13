@@ -101,6 +101,11 @@ class PodcastRepository(
     db.episodes().setLocalFileUri(guid, uri)
   }
 
+  suspend fun clearEpisodeDownload(guid: String) {
+    db.episodes().setDownloadId(guid, 0L)
+    db.episodes().setLocalFileUri(guid, null)
+  }
+
   suspend fun dequeueNext(): QueueItemEntity? {
     val next = db.queue().peek() ?: return null
     db.queue().delete(next.id)
