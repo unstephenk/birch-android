@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -27,8 +28,10 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,8 +52,17 @@ fun EpisodesScreen(
   onTogglePlayed: (EpisodeEntity) -> Unit,
 ) {
   val episodes by vm.episodes.collectAsState()
+  var query by remember { mutableStateOf("") }
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
+
+  val filtered = remember(episodes, query) {
+    val q = query.trim()
+    if (q.isBlank()) episodes
+    else episodes.filter { ep ->
+      ep.title.contains(q, ignoreCase = true) || (ep.summary?.contains(q, ignoreCase = true) ?: false)
+    }
+  }
 
   Scaffold(
     topBar = {
@@ -63,40 +75,51 @@ fun EpisodesScreen(
     },
     snackbarHost = { SnackbarHost(snackbarHostState) },
   ) { padding ->
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-      items(episodes, key = { it.id }) { ep ->
-        EpisodeListRow(
-          ep = ep,
-          onPlay = { onPlay(ep) },
-          onAddToQueue = {
-            onAddToQueue(ep)
-            scope.launch {
-              snackbarHostState.showSnackbar("Added to queue")
-            }
-          },
-          onDownload = {
-            onDownload(ep)
-            scope.launch {
-              snackbarHostState.showSnackbar("Download started")
-            }
-          },
-          onRemoveDownload = {
-            onRemoveDownload(ep)
-            scope.launch {
-              snackbarHostState.showSnackbar("Download removed")
-            }
-          },
-          onTogglePlayed = {
-            onTogglePlayed(ep)
-            scope.launch {
-              snackbarHostState.showSnackbar(if (ep.completed == 1) "Marked unplayed" else "Marked played")
-            }
-          },
-        )
+    Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+      OutlinedTextField(
+        value = query,
+        onValueChange = { query = it },
+        modifier = Modifier.fillMaxWidth().padding(12.dp),
+        label = { Text("Search episodes") },
+        singleLine = true,
+      )
+
+      LazyColumn(modifier = Modifier.fillMaxSize()) {
+        items(filtered, key = { it.id }) { ep ->
+          EpisodeListRow(
+            ep = ep,
+            onPlay = { onPlay(ep) },
+            onAddToQueue = {
+              onAddToQueue(ep)
+              scope.launch {
+                snackbarHostState.showSnackbar("Added to queue")
+              }
+            },
+            onDownload = {
+              onDownload(ep)
+              scope.launch {
+                snackbarHostState.showSnackbar("Download started")
+              }
+            },
+            onRemoveDownload = {
+              onRemoveDownload(ep)
+              scope.launch {
+                snackbarHostState.showSnackbar("Download removed")
+              }
+            },
+            onTogglePlayed = {
+              onTogglePlayed(ep)
+              scope.launch {
+                snackbarHostState.showSnackbar(if (ep.completed == 1) "Marked unplayed" else "Marked played")
+              }
+            },
+          )
+        }
       }
     }
   }
 }
+
 
 @androidx.compose.foundation.ExperimentalFoundationApi
 @Composable
