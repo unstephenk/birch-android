@@ -75,7 +75,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private const val FEED_URL = "https://www.infowars.com/rss.xml"
+private const val FEED_URL = "https://rss.infowars.com/Alex.xml"
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {

@@ -151,7 +151,8 @@ class RssClient(
               // Atom
               name.equals("summary", ignoreCase = true) -> summary = readText(parser)
               name.equals("enclosure", ignoreCase = true) -> {
-                enclosureUrl = parser.getAttributeValue(null, "url")
+                val raw = parser.getAttributeValue(null, "url")
+                enclosureUrl = raw?.let { normalizeAudioUrl(it) }
               }
             }
           }
