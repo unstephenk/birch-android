@@ -61,4 +61,12 @@ interface EpisodeDao {
 
   @Query("UPDATE episodes SET localFileUri = :uri WHERE guid = :guid")
   suspend fun setLocalFileUri(guid: String, uri: String?)
+
+  @Query("UPDATE episodes SET completed = :completed, lastPositionMs = :positionMs, lastPlayedAtMs = :playedAtMs WHERE guid = :guid")
+  suspend fun setCompleted(
+    guid: String,
+    completed: Int,
+    positionMs: Long,
+    playedAtMs: Long,
+  )
 }

@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -45,6 +46,7 @@ fun EpisodesScreen(
   onAddToQueue: (EpisodeEntity) -> Unit,
   onDownload: (EpisodeEntity) -> Unit,
   onRemoveDownload: (EpisodeEntity) -> Unit,
+  onTogglePlayed: (EpisodeEntity) -> Unit,
 ) {
   val episodes by vm.episodes.collectAsState()
   val snackbarHostState = remember { SnackbarHostState() }
@@ -84,6 +86,12 @@ fun EpisodesScreen(
               snackbarHostState.showSnackbar("Download removed")
             }
           },
+          onTogglePlayed = {
+            onTogglePlayed(ep)
+            scope.launch {
+              snackbarHostState.showSnackbar(if (ep.completed == 1) "Marked unplayed" else "Marked played")
+            }
+          },
         )
       }
     }
@@ -98,6 +106,7 @@ private fun EpisodeListRow(
   onAddToQueue: () -> Unit,
   onDownload: () -> Unit,
   onRemoveDownload: () -> Unit,
+  onTogglePlayed: () -> Unit,
 ) {
   Column(
     modifier = Modifier
@@ -122,6 +131,11 @@ private fun EpisodeListRow(
       )
 
       val downloaded = !ep.localFileUri.isNullOrBlank()
+      // Played toggle
+      IconButton(onClick = onTogglePlayed) {
+        Icon(Icons.Filled.Check, contentDescription = "Toggle played")
+      }
+
       if (downloaded) {
         Text("Saved", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         IconButton(onClick = onRemoveDownload) {

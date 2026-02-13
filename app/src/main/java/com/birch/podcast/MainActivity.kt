@@ -417,6 +417,9 @@ private fun BirchApp() {
                 // Best-effort: we keep the file for now; just detach it from the episode.
                 repo.clearEpisodeDownload(ep.guid)
               }
+            },
+            onTogglePlayed = { ep ->
+              scope.launch { repo.setEpisodeCompleted(ep.guid, ep.completed == 0) }
             }
           )
         }

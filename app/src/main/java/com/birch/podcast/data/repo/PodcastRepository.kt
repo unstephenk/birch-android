@@ -106,6 +106,17 @@ class PodcastRepository(
     db.episodes().setLocalFileUri(guid, null)
   }
 
+  suspend fun setEpisodeCompleted(guid: String, completed: Boolean) {
+    val ep = db.episodes().getByGuid(guid)
+    val pos = if (completed) (ep?.durationMs ?: 0L) else 0L
+    db.episodes().setCompleted(
+      guid = guid,
+      completed = if (completed) 1 else 0,
+      positionMs = pos,
+      playedAtMs = if (completed) System.currentTimeMillis() else 0L,
+    )
+  }
+
   suspend fun dequeueNext(): QueueItemEntity? {
     val next = db.queue().peek() ?: return null
     db.queue().delete(next.id)
