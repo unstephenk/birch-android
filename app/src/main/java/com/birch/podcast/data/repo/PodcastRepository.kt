@@ -74,6 +74,23 @@ class PodcastRepository(
     )
   }
 
+  suspend fun getEpisodeByGuid(guid: String) = db.episodes().getByGuid(guid)
+
+  suspend fun updateEpisodePlayback(
+    guid: String,
+    positionMs: Long,
+    durationMs: Long,
+    completed: Boolean,
+  ) {
+    db.episodes().updatePlayback(
+      guid = guid,
+      positionMs = positionMs,
+      durationMs = durationMs,
+      completed = if (completed) 1 else 0,
+      playedAtMs = System.currentTimeMillis(),
+    )
+  }
+
   suspend fun dequeueNext(): QueueItemEntity? {
     val next = db.queue().peek() ?: return null
     db.queue().delete(next.id)

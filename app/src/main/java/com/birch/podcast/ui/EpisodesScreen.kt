@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.runtime.Composable
@@ -91,6 +92,15 @@ private fun EpisodeListRow(
       .padding(horizontal = 12.dp, vertical = 10.dp)
   ) {
     Text(ep.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+
+    // Progress
+    val showProgress = ep.durationMs > 0 && ep.lastPositionMs > 0 && ep.completed == 0
+    if (showProgress) {
+      Spacer(Modifier.padding(2.dp))
+      val v = (ep.lastPositionMs.toFloat() / ep.durationMs.toFloat()).coerceIn(0f, 1f)
+      LinearProgressIndicator(progress = { v }, modifier = Modifier.fillMaxWidth())
+    }
+
     if (!ep.summary.isNullOrBlank()) {
       Spacer(Modifier.padding(2.dp))
       Text(ep.summary!!, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -100,5 +110,11 @@ private fun EpisodeListRow(
       Spacer(Modifier.padding(2.dp))
       Text(date, style = MaterialTheme.typography.labelSmall)
     }
+
+    if (ep.completed == 1) {
+      Spacer(Modifier.padding(2.dp))
+      Text("Played", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
   }
 }
+

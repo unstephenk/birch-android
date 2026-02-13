@@ -138,12 +138,29 @@ private fun BirchApp() {
     onDispose { c?.removeListener(listener) }
   }
 
-  // Position/duration ticker
+  // Position/duration ticker + persist playback
   LaunchedEffect(controller) {
+    var lastPersistAt = 0L
     while (true) {
       val c = controller
       positionMs = c?.currentPosition ?: 0L
       durationMs = c?.duration ?: 0L
+
+      val guid = c?.currentMediaItem?.mediaId
+      val now = System.currentTimeMillis()
+      if (guid != null && durationMs > 0 && now - lastPersistAt > 3_000) {
+        lastPersistAt = now
+        // best-effort persistence
+        scope.launch {
+          repo.updateEpisodePlayback(
+            guid = guid,
+            positionMs = positionMs,
+            durationMs = durationMs,
+            completed = false,
+          )
+        }
+      }
+
       delay(500)
     }
   }
@@ -159,8 +176,18 @@ private fun BirchApp() {
 
     nowTitle = title
     c.setMediaItem(item)
-    c.prepare()
-    c.play()
+
+    // Resume (best-effort)
+    scope.launch {
+      val saved = repo.getEpisodeByGuid(guid)
+      val resumeMs = (saved?.lastPositionMs ?: 0L)
+      val wasCompleted = (saved?.completed ?: 0) == 1
+      if (!wasCompleted && resumeMs > 5_000) {
+        c.seekTo(resumeMs)
+      }
+      c.prepare()
+      c.play()
+    }
   }
 
   // Auto-play next in queue when the current item ends.
@@ -170,6 +197,20 @@ private fun BirchApp() {
     val l = object : Player.Listener {
       override fun onPlaybackStateChanged(playbackState: Int) {
         if (playbackState == Player.STATE_ENDED) {
+          // Mark completed
+          val guid = c.currentMediaItem?.mediaId
+          val dur = c.duration
+          if (guid != null && dur > 0) {
+            scope.launch {
+              repo.updateEpisodePlayback(
+                guid = guid,
+                positionMs = dur,
+                durationMs = dur,
+                completed = true,
+              )
+            }
+          }
+
           // Pick the next queued item.
           scope.launch {
             val next = repo.dequeueNext() ?: return@launch

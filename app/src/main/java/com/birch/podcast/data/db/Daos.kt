@@ -30,6 +30,9 @@ interface EpisodeDao {
   @Query("SELECT * FROM episodes WHERE podcastId = :podcastId ORDER BY publishedAtMs DESC, id DESC")
   fun observeByPodcast(podcastId: Long): Flow<List<EpisodeEntity>>
 
+  @Query("SELECT * FROM episodes WHERE guid = :guid LIMIT 1")
+  suspend fun getByGuid(guid: String): EpisodeEntity?
+
   @Insert(onConflict = OnConflictStrategy.IGNORE)
   suspend fun insertAll(episodes: List<EpisodeEntity>)
 
@@ -38,10 +41,15 @@ interface EpisodeDao {
 
   @Query("DELETE FROM episodes WHERE podcastId = :podcastId")
   suspend fun deleteForPodcast(podcastId: Long)
-}
 
-@Dao
-interface PlaybackDao {
-  @Query("SELECT positionMs FROM playback_state WHERE episodeGuid = :guid LIMIT 1")
-  suspend fun getPositionMs(guid: String): Long?
+  @Query(
+    "UPDATE episodes SET lastPositionMs = :positionMs, durationMs = :durationMs, completed = :completed, lastPlayedAtMs = :playedAtMs WHERE guid = :guid"
+  )
+  suspend fun updatePlayback(
+    guid: String,
+    positionMs: Long,
+    durationMs: Long,
+    completed: Int,
+    playedAtMs: Long,
+  )
 }

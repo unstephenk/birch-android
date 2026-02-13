@@ -33,5 +33,12 @@ data class EpisodeEntity(
   val summary: String? = null,
   val audioUrl: String,
   val publishedAtMs: Long? = null,
+
+  // Playback persistence
+  @ColumnInfo(defaultValue = "0") val lastPositionMs: Long = 0,
+  @ColumnInfo(defaultValue = "0") val durationMs: Long = 0,
+  @ColumnInfo(defaultValue = "0") val completed: Int = 0,
+  @ColumnInfo(defaultValue = "0") val lastPlayedAtMs: Long = 0,
+
   @ColumnInfo(defaultValue = "0") val createdAtMs: Long = System.currentTimeMillis(),
 )
