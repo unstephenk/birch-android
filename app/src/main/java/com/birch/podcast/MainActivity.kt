@@ -74,6 +74,9 @@ import com.birch.podcast.theme.ThemePrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.CancellationException
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 private const val FEED_URL = "https://rss.infowars.com/Alex.xml"
 
@@ -346,6 +349,8 @@ private fun PodcastScreen(
                       }
                       downloadStore.setLocalPath(ep.id, file.absolutePath)
                       downloadProgress.remove(ep.id)
+                    } catch (_: CancellationException) {
+                      // User cancelled; don't show an error toast/banner.
                     } catch (t: Throwable) {
                       downloadError = t.message ?: t.toString()
                     } finally {
@@ -363,7 +368,7 @@ private fun PodcastScreen(
                   val ok = downloader.delete(ep.id)
                   downloadStore.setLocalPath(ep.id, null)
                   downloadProgress.remove(ep.id)
-                  downloadError = if (ok) "Deleted: ${ep.title}" else "Delete failed: ${ep.title}"
+                  downloadError = if (ok) "${ep.title} was deleted" else "Delete failed: ${ep.title}"
                 },
                 onPlay = {
                   val c = controller ?: return@EpisodeRow
@@ -484,6 +489,18 @@ private fun NowPlayingBar(
   }
 }
 
+private fun formatPubDateShort(raw: String?): String? {
+  if (raw.isNullOrBlank()) return null
+  return try {
+    // RSS pubDate is usually RFC1123: "Wed, 11 Feb 2026 22:00:00 -0000"
+    val zdt = ZonedDateTime.parse(raw.trim(), DateTimeFormatter.RFC_1123_DATE_TIME)
+    zdt.format(DateTimeFormatter.ofPattern("EEE, dd MMM yyyy"))
+  } catch (_: Throwable) {
+    // Fallback: keep the original if parsing fails.
+    raw.trim()
+  }
+}
+
 @Composable
 private fun EpisodeRow(
   ep: Episode,
@@ -510,8 +527,9 @@ private fun EpisodeRow(
       Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
         Text(ep.title, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
 
-        if (!ep.pubDateRaw.isNullOrBlank()) {
-          Text(ep.pubDateRaw!!, style = MaterialTheme.typography.bodySmall)
+        val shortDate = formatPubDateShort(ep.pubDateRaw)
+        if (!shortDate.isNullOrBlank()) {
+          Text(shortDate, style = MaterialTheme.typography.bodySmall)
         }
 
         if (!ep.summary.isNullOrBlank()) {
