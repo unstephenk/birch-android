@@ -72,10 +72,16 @@ import com.birch.podcast.ui.EpisodesScreen
 import com.birch.podcast.ui.EpisodesViewModel
 import com.birch.podcast.ui.LibraryScreen
 import com.birch.podcast.ui.LibraryViewModel
+import androidx.media3.common.Metadata
+import androidx.media3.extractor.metadata.id3.ChapterFrame
+import androidx.media3.session.SessionCommand
+import com.birch.podcast.ui.ChapterUi
 import com.birch.podcast.ui.DownloadsScreen
+import com.birch.podcast.ui.HistoryScreen
 import com.birch.podcast.ui.NowPlayingScreen
 import com.birch.podcast.ui.QueueScreen
 import com.birch.podcast.ui.QueueViewModel
+import com.birch.podcast.playback.PlaybackCommands
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -199,6 +205,7 @@ private fun BirchApp() {
 
     val showNotif = DownloadPrefs.showSystemNotification(context, default = true)
     val wifiOnly = DownloadPrefs.wifiOnly(context, default = false)
+    val chargingOnly = DownloadPrefs.chargingOnly(context, default = false)
 
     val baseReq = DownloadManager.Request(Uri.parse(audioUrl))
       .setTitle(title)
@@ -214,6 +221,11 @@ private fun BirchApp() {
         else DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
       )
       .setDestinationInExternalFilesDir(context, "downloads", "$safeBase.mp3")
+      .apply {
+        if (android.os.Build.VERSION.SDK_INT >= 24) {
+          setRequiresCharging(chargingOnly)
+        }
+      }
 
     val id = try {
       dmSvc.enqueue(baseReq)
@@ -224,6 +236,11 @@ private fun BirchApp() {
         .setAllowedOverRoaming(true)
         .setAllowedOverMetered(true)
         .setDestinationInExternalFilesDir(context, "downloads", "$safeBase.mp3")
+        .apply {
+          if (android.os.Build.VERSION.SDK_INT >= 24) {
+            setRequiresCharging(chargingOnly)
+          }
+        }
       dmSvc.enqueue(fallbackReq)
     }
 
@@ -286,6 +303,12 @@ private fun BirchApp() {
   var durationMs by remember { mutableStateOf(0L) }
   var playbackSpeed by remember { mutableStateOf(PlaybackPrefs.getSpeed(context, 1.0f)) }
   var playbackPitch by remember { mutableStateOf(PlaybackPrefs.getPitch(context, 1.0f)) }
+  var skipSilenceEnabled by remember { mutableStateOf(PlaybackPrefs.getSkipSilence(context, false)) }
+  var boostVolumeEnabled by remember { mutableStateOf(PlaybackPrefs.getBoostVolume(context, false)) }
+  var nowPodcastId by remember { mutableStateOf<Long?>(null) }
+  var nowTrimIntroMs by remember { mutableStateOf(0L) }
+  var nowTrimOutroMs by remember { mutableStateOf(0L) }
+  var chapters by remember { mutableStateOf<List<ChapterUi>>(emptyList()) }
 
   // Sleep timer
   var sleepTimerLabel by remember { mutableStateOf<String?>(null) }
@@ -350,6 +373,30 @@ private fun BirchApp() {
 
       override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
         nowTitle = mediaItem?.mediaMetadata?.title?.toString()
+        chapters = emptyList()
+
+        val guid = mediaItem?.mediaId ?: return
+        scope.launch {
+          val ep = repo.getEpisodeByGuid(guid) ?: return@launch
+          nowPodcastId = ep.podcastId
+          nowTrimIntroMs = PlaybackPrefs.getTrimIntroMs(context, ep.podcastId)
+          nowTrimOutroMs = PlaybackPrefs.getTrimOutroMs(context, ep.podcastId)
+        }
+      }
+
+      override fun onMetadata(metadata: Metadata) {
+        // Best-effort ID3 chapter support.
+        val out = buildList {
+          for (i in 0 until metadata.length()) {
+            val e = metadata[i]
+            if (e is ChapterFrame) {
+              val t = e.chapterId?.takeIf { it.isNotBlank() } ?: "Chapter"
+              add(ChapterUi(title = t, startMs = e.startTimeMs.toLong()))
+            }
+          }
+        }.sortedBy { it.startMs }
+
+        if (out.isNotEmpty()) chapters = out
       }
 
       override fun onPlaybackStateChanged(playbackState: Int) {
@@ -377,6 +424,12 @@ private fun BirchApp() {
       positionMs = c?.currentPosition ?: 0L
       durationMs = c?.duration ?: 0L
 
+      // Trim outro: stop early by jumping to end when within the last N ms.
+      val outroMs = nowTrimOutroMs
+      if (outroMs > 0 && durationMs > 0 && durationMs - positionMs in 1..outroMs) {
+        c?.seekTo(durationMs)
+      }
+
       val guid = c?.currentMediaItem?.mediaId
       val now = System.currentTimeMillis()
       if (guid != null && durationMs > 0 && now - lastPersistAt > 3_000) {
@@ -396,29 +449,67 @@ private fun BirchApp() {
     }
   }
 
-  fun playEpisode(title: String, guid: String, audioUrl: String) {
+  fun playEpisode(title: String, guid: String, audioUrl: String, podcastId: Long? = null) {
     val c = controller ?: return
 
     nowTitle = title
 
     scope.launch {
       val saved = repo.getEpisodeByGuid(guid)
+      val effectivePodcastId = podcastId ?: saved?.podcastId
       val uri = saved?.localFileUri ?: audioUrl
+
+      // Per-podcast playback prefs (fallback to global)
+      val speed = if (effectivePodcastId != null) PlaybackPrefs.getSpeedForPodcast(context, effectivePodcastId) else PlaybackPrefs.getSpeed(context)
+      val pitch = if (effectivePodcastId != null) PlaybackPrefs.getPitchForPodcast(context, effectivePodcastId) else PlaybackPrefs.getPitch(context)
+      val subtitle = "${speed}x • ${pitch}p"
 
       val item = MediaItem.Builder()
         .setMediaId(guid)
         .setUri(uri)
-        .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
+        .setMediaMetadata(MediaMetadata.Builder().setTitle(title).setSubtitle(subtitle).build())
         .build()
 
       c.setMediaItem(item)
 
-      // Resume (best-effort)
+      // Apply playback params before play
+      c.setPlaybackParameters(PlaybackParameters(speed, pitch))
+      playbackSpeed = speed
+      playbackPitch = pitch
+
+      // Persist and cache episode context for UI
+      nowPodcastId = effectivePodcastId
+      nowTrimIntroMs = if (effectivePodcastId != null) PlaybackPrefs.getTrimIntroMs(context, effectivePodcastId) else 0L
+      nowTrimOutroMs = if (effectivePodcastId != null) PlaybackPrefs.getTrimOutroMs(context, effectivePodcastId) else 0L
+
+      // Best-effort: toggle features
+      val skip = PlaybackPrefs.getSkipSilence(context)
+      val boost = PlaybackPrefs.getBoostVolume(context)
+      skipSilenceEnabled = skip
+      boostVolumeEnabled = boost
+      c.sendCustomCommand(SessionCommand(PlaybackCommands.ACTION_SET_SKIP_SILENCE, Bundle.EMPTY), Bundle().apply {
+        putBoolean(PlaybackCommands.EXTRA_ENABLED, skip)
+      })
+      c.sendCustomCommand(SessionCommand(PlaybackCommands.ACTION_SET_BOOST, Bundle.EMPTY), Bundle().apply {
+        putBoolean(PlaybackCommands.EXTRA_ENABLED, boost)
+      })
+
+      // History
+      if (effectivePodcastId != null) {
+        repo.addToHistory(effectivePodcastId, guid, title)
+      }
+
+      // Resume (best-effort) w/ intro trim
       val resumeMs = (saved?.lastPositionMs ?: 0L)
       val wasCompleted = (saved?.completed ?: 0) == 1
-      if (!wasCompleted && resumeMs > 5_000) {
-        c.seekTo(resumeMs)
+      val introMs = nowTrimIntroMs
+      val initialSeekMs = if (!wasCompleted) maxOf(resumeMs, introMs) else 0L
+      if (!wasCompleted && initialSeekMs > 5_000) {
+        c.seekTo(initialSeekMs)
+      } else if (!wasCompleted && introMs > 0L) {
+        c.seekTo(introMs)
       }
+
       c.prepare()
       c.play()
     }
@@ -514,6 +605,7 @@ private fun BirchApp() {
             },
             onAdd = { nav.navigate("add") },
             onOpenDownloads = { nav.navigate("downloads") },
+            onOpenHistory = { nav.navigate("history") },
             onOpenPodcast = { id -> nav.navigate("podcast/$id") },
           )
         }
@@ -548,7 +640,7 @@ private fun BirchApp() {
             vm = vm,
             onBack = { nav.popBackStack() },
             onPlay = { ep ->
-              playEpisode(ep.title, ep.guid, ep.audioUrl)
+              playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId)
             },
             onAddToQueue = { ep ->
               scope.launch { repo.enqueue(ep.title, ep.guid, ep.audioUrl) }
@@ -613,6 +705,17 @@ private fun BirchApp() {
         }
 
         composable("nowplaying") {
+          fun refreshNotificationSubtitle() {
+            val c = controller ?: return
+            val cur = c.currentMediaItem ?: return
+            val title = cur.mediaMetadata.title?.toString() ?: nowTitle ?: ""
+            val subtitle = "${playbackSpeed}x • ${playbackPitch}p"
+            val updated = cur.buildUpon()
+              .setMediaMetadata(MediaMetadata.Builder().setTitle(title).setSubtitle(subtitle).build())
+              .build()
+            runCatching { c.replaceMediaItem(c.currentMediaItemIndex, updated) }
+          }
+
           NowPlayingScreen(
             title = nowTitle,
             isPlaying = isPlaying,
@@ -621,6 +724,11 @@ private fun BirchApp() {
             playbackSpeed = playbackSpeed,
             playbackPitch = playbackPitch,
             sleepTimerLabel = sleepTimerLabel,
+            skipSilenceEnabled = skipSilenceEnabled,
+            boostVolumeEnabled = boostVolumeEnabled,
+            trimIntroSec = (nowTrimIntroMs / 1000L).toInt(),
+            trimOutroSec = (nowTrimOutroMs / 1000L).toInt(),
+            chapters = chapters,
             onBack = { nav.popBackStack() },
             onOpenQueue = { nav.navigate("queue") },
             onSetSleepTimerOff = { clearSleepTimer() },
@@ -643,14 +751,47 @@ private fun BirchApp() {
               val c = controller ?: return@NowPlayingScreen
               c.setPlaybackParameters(PlaybackParameters(speed, playbackPitch))
               playbackSpeed = speed
-              PlaybackPrefs.setSpeed(context, speed)
+              val pid = nowPodcastId
+              if (pid != null) PlaybackPrefs.setSpeedForPodcast(context, pid, speed) else PlaybackPrefs.setSpeed(context, speed)
+              refreshNotificationSubtitle()
             },
             onSetPitch = { pitch ->
               val c = controller ?: return@NowPlayingScreen
               c.setPlaybackParameters(PlaybackParameters(playbackSpeed, pitch))
               playbackPitch = pitch
-              PlaybackPrefs.setPitch(context, pitch)
-            }
+              val pid = nowPodcastId
+              if (pid != null) PlaybackPrefs.setPitchForPodcast(context, pid, pitch) else PlaybackPrefs.setPitch(context, pitch)
+              refreshNotificationSubtitle()
+            },
+            onToggleSkipSilence = { enabled ->
+              val c = controller ?: return@NowPlayingScreen
+              skipSilenceEnabled = enabled
+              PlaybackPrefs.setSkipSilence(context, enabled)
+              c.sendCustomCommand(SessionCommand(PlaybackCommands.ACTION_SET_SKIP_SILENCE, Bundle.EMPTY), Bundle().apply {
+                putBoolean(PlaybackCommands.EXTRA_ENABLED, enabled)
+              })
+            },
+            onToggleBoostVolume = { enabled ->
+              val c = controller ?: return@NowPlayingScreen
+              boostVolumeEnabled = enabled
+              PlaybackPrefs.setBoostVolume(context, enabled)
+              c.sendCustomCommand(SessionCommand(PlaybackCommands.ACTION_SET_BOOST, Bundle.EMPTY), Bundle().apply {
+                putBoolean(PlaybackCommands.EXTRA_ENABLED, enabled)
+              })
+            },
+            onSetTrimIntroSec = { sec ->
+              val pid = nowPodcastId ?: return@NowPlayingScreen
+              nowTrimIntroMs = sec.coerceAtLeast(0) * 1000L
+              PlaybackPrefs.setTrimIntroMs(context, pid, nowTrimIntroMs)
+            },
+            onSetTrimOutroSec = { sec ->
+              val pid = nowPodcastId ?: return@NowPlayingScreen
+              nowTrimOutroMs = sec.coerceAtLeast(0) * 1000L
+              PlaybackPrefs.setTrimOutroMs(context, pid, nowTrimOutroMs)
+            },
+            onSeekToChapter = { ms ->
+              controller?.seekTo(ms)
+            },
           )
         }
 
@@ -669,7 +810,21 @@ private fun BirchApp() {
           DownloadsScreen(
             repo = repo,
             onBack = { nav.popBackStack() },
-            onPlay = { ep -> playEpisode(ep.title, ep.guid, ep.audioUrl) },
+            onPlay = { ep -> playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId) },
+          )
+        }
+
+        composable("history") {
+          HistoryScreen(
+            repo = repo,
+            onBack = { nav.popBackStack() },
+            onPlay = { guid ->
+              scope.launch {
+                val ep = repo.getEpisodeByGuid(guid) ?: return@launch
+                playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId)
+                nav.navigate("nowplaying")
+              }
+            },
           )
         }
       }

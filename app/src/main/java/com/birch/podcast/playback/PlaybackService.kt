@@ -4,6 +4,8 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import android.media.audiofx.LoudnessEnhancer
+import android.os.Bundle
 import androidx.media3.session.CommandButton
 import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
@@ -16,6 +18,8 @@ class PlaybackService : MediaSessionService() {
 
   private var player: ExoPlayer? = null
   private var mediaSession: MediaSession? = null
+  private var loudnessEnhancer: LoudnessEnhancer? = null
+  private var boostEnabled: Boolean = false
 
   override fun onCreate() {
     super.onCreate()
@@ -35,6 +39,21 @@ class PlaybackService : MediaSessionService() {
       )
       setHandleAudioBecomingNoisy(true)
       repeatMode = Player.REPEAT_MODE_OFF
+
+      addListener(object : Player.Listener {
+        override fun onAudioSessionIdChanged(audioSessionId: Int) {
+          if (audioSessionId == 0) return
+          // Recreate when session id changes.
+          loudnessEnhancer?.release()
+          loudnessEnhancer = runCatching {
+            LoudnessEnhancer(audioSessionId).apply {
+              // 1200 mB ~= +12 dB. Keep it modest.
+              setTargetGain(1200)
+              enabled = boostEnabled
+            }
+          }.getOrNull()
+        }
+      })
     }
     player = p
 
@@ -48,12 +67,38 @@ class PlaybackService : MediaSessionService() {
           // Allow notification controller to use seek back/forward.
           val base = super.onConnect(session, controller)
           val sessionCommands = base.availableSessionCommands
+            .buildUpon()
+            .add(androidx.media3.session.SessionCommand(PlaybackCommands.ACTION_SET_BOOST, Bundle.EMPTY))
+            .add(androidx.media3.session.SessionCommand(PlaybackCommands.ACTION_SET_SKIP_SILENCE, Bundle.EMPTY))
+            .build()
           val playerCommands = base.availablePlayerCommands
             .buildUpon()
             .add(Player.COMMAND_SEEK_BACK)
             .add(Player.COMMAND_SEEK_FORWARD)
             .build()
           return MediaSession.ConnectionResult.accept(sessionCommands, playerCommands)
+        }
+
+        override fun onCustomCommand(
+          session: MediaSession,
+          controller: MediaSession.ControllerInfo,
+          customCommand: androidx.media3.session.SessionCommand,
+          args: Bundle,
+        ): ListenableFuture<SessionResult> {
+          when (customCommand.customAction) {
+            PlaybackCommands.ACTION_SET_BOOST -> {
+              boostEnabled = args.getBoolean(PlaybackCommands.EXTRA_ENABLED, false)
+              loudnessEnhancer?.enabled = boostEnabled
+              return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+
+            PlaybackCommands.ACTION_SET_SKIP_SILENCE -> {
+              val enabled = args.getBoolean(PlaybackCommands.EXTRA_ENABLED, false)
+              player?.skipSilenceEnabled = enabled
+              return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+          }
+          return super.onCustomCommand(session, controller, customCommand, args)
         }
       })
       .build().also { session ->
@@ -84,6 +129,9 @@ class PlaybackService : MediaSessionService() {
   override fun onDestroy() {
     mediaSession?.release()
     mediaSession = null
+
+    loudnessEnhancer?.release()
+    loudnessEnhancer = null
 
     player?.release()
     player = null

@@ -10,6 +10,7 @@ object DownloadPrefs {
   private const val KEY_WIFI_ONLY = "wifi_only"
   private const val KEY_SHOW_NOTIFICATION = "show_system_notification"
   private const val KEY_AUTO_DELETE_ON_PLAYED = "auto_delete_on_played"
+  private const val KEY_CHARGING_ONLY = "charging_only"
 
   fun wifiOnly(context: Context, default: Boolean = false): Boolean {
     val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -39,5 +40,15 @@ object DownloadPrefs {
   fun setAutoDeleteOnPlayed(context: Context, enabled: Boolean) {
     val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     p.edit().putBoolean(KEY_AUTO_DELETE_ON_PLAYED, enabled).apply()
+  }
+
+  fun chargingOnly(context: Context, default: Boolean = false): Boolean {
+    val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    return p.getBoolean(KEY_CHARGING_ONLY, default)
+  }
+
+  fun setChargingOnly(context: Context, enabled: Boolean) {
+    val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    p.edit().putBoolean(KEY_CHARGING_ONLY, enabled).apply()
   }
 }

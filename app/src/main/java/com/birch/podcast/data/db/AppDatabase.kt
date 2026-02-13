@@ -6,14 +6,15 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-  entities = [PodcastEntity::class, EpisodeEntity::class, QueueItemEntity::class],
-  version = 3,
+  entities = [PodcastEntity::class, EpisodeEntity::class, QueueItemEntity::class, PlaybackHistoryEntity::class],
+  version = 4,
   exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
   abstract fun podcasts(): PodcastDao
   abstract fun episodes(): EpisodeDao
   abstract fun queue(): QueueDao
+  abstract fun history(): PlaybackHistoryDao
 
   companion object {
     @Volatile private var INSTANCE: AppDatabase? = null

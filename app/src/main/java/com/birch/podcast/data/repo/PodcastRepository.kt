@@ -19,6 +19,7 @@ class PodcastRepository(
   fun observeDownloadingEpisodes() = db.episodes().observeDownloading()
   fun observeDownloadedEpisodes() = db.episodes().observeDownloaded()
   fun observeQueue() = db.queue().observe()
+  fun observePlaybackHistory(limit: Int = 50) = db.history().observeRecent(limit)
 
   suspend fun addPodcast(feedUrl: String): Long {
     // Fetch and parse first so we can save the real title.
@@ -129,6 +130,17 @@ class PodcastRepository(
   suspend fun clearEpisodeDownload(guid: String) {
     db.episodes().setDownloadId(guid, 0L)
     db.episodes().setLocalFileUri(guid, null)
+  }
+
+  suspend fun addToHistory(podcastId: Long, guid: String, title: String) {
+    db.history().insert(
+      com.birch.podcast.data.db.PlaybackHistoryEntity(
+        podcastId = podcastId,
+        episodeGuid = guid,
+        title = title,
+        playedAtMs = System.currentTimeMillis(),
+      )
+    )
   }
 
   suspend fun setEpisodeCompleted(guid: String, completed: Boolean) {

@@ -13,6 +13,7 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
@@ -23,6 +24,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -45,6 +47,11 @@ fun NowPlayingScreen(
   playbackSpeed: Float,
   playbackPitch: Float,
   sleepTimerLabel: String?,
+  skipSilenceEnabled: Boolean,
+  boostVolumeEnabled: Boolean,
+  trimIntroSec: Int,
+  trimOutroSec: Int,
+  chapters: List<ChapterUi>,
   onBack: () -> Unit,
   onOpenQueue: () -> Unit,
   onSetSleepTimerOff: () -> Unit,
@@ -56,6 +63,11 @@ fun NowPlayingScreen(
   onForward30: () -> Unit,
   onSetSpeed: (Float) -> Unit,
   onSetPitch: (Float) -> Unit,
+  onToggleSkipSilence: (Boolean) -> Unit,
+  onToggleBoostVolume: (Boolean) -> Unit,
+  onSetTrimIntroSec: (Int) -> Unit,
+  onSetTrimOutroSec: (Int) -> Unit,
+  onSeekToChapter: (Long) -> Unit,
 ) {
   var speedMenuOpen by remember { mutableStateOf(false) }
   var pitchMenuOpen by remember { mutableStateOf(false) }
@@ -190,6 +202,52 @@ fun NowPlayingScreen(
         }
         IconButton(onClick = onForward30) {
           Icon(Icons.Filled.FastForward, contentDescription = "Forward 30")
+        }
+      }
+
+      Spacer(Modifier.padding(4.dp))
+
+      // Toggles
+      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text("Skip silence", style = MaterialTheme.typography.bodyMedium)
+        Switch(checked = skipSilenceEnabled, onCheckedChange = onToggleSkipSilence)
+      }
+      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text("Boost volume", style = MaterialTheme.typography.bodyMedium)
+        Switch(checked = boostVolumeEnabled, onCheckedChange = onToggleBoostVolume)
+      }
+
+      // Trim controls (per-podcast)
+      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text("Trim intro: ${trimIntroSec}s", style = MaterialTheme.typography.bodyMedium)
+      }
+      Slider(
+        value = trimIntroSec.toFloat(),
+        onValueChange = { onSetTrimIntroSec(it.toInt()) },
+        valueRange = 0f..120f,
+        steps = 11,
+      )
+      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Text("Trim outro: ${trimOutroSec}s", style = MaterialTheme.typography.bodyMedium)
+      }
+      Slider(
+        value = trimOutroSec.toFloat(),
+        onValueChange = { onSetTrimOutroSec(it.toInt()) },
+        valueRange = 0f..120f,
+        steps = 11,
+      )
+
+      if (chapters.isNotEmpty()) {
+        Spacer(Modifier.padding(4.dp))
+        Text("Chapters", style = MaterialTheme.typography.titleSmall)
+        chapters.take(20).forEach { ch ->
+          Row(
+            modifier = Modifier.fillMaxWidth().clickable { onSeekToChapter(ch.startMs) }.padding(vertical = 6.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+          ) {
+            Text(ch.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(fmtMs(ch.startMs), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+          }
         }
       }
 

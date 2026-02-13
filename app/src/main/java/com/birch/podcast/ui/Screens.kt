@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -55,6 +56,7 @@ fun LibraryScreen(
   onToggleTheme: () -> Unit,
   onAdd: () -> Unit,
   onOpenDownloads: () -> Unit,
+  onOpenHistory: () -> Unit,
   onOpenPodcast: (Long) -> Unit,
 ) {
   val podcasts by vm.podcasts.collectAsState()
@@ -73,6 +75,9 @@ fun LibraryScreen(
           }
           IconButton(onClick = onOpenDownloads) {
             Icon(Icons.Filled.Download, contentDescription = "Downloads")
+          }
+          IconButton(onClick = onOpenHistory) {
+            Icon(Icons.Filled.History, contentDescription = "History")
           }
           IconButton(onClick = onAdd) {
             Icon(Icons.Filled.Add, contentDescription = "Add feed")
