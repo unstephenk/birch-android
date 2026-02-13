@@ -18,6 +18,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -160,6 +161,8 @@ private fun EpisodeListRow(
       )
 
       val downloaded = !ep.localFileUri.isNullOrBlank()
+      val downloading = !downloaded && ep.downloadId != 0L
+
       // Played toggle
       IconButton(onClick = onTogglePlayed) {
         Icon(Icons.Filled.Check, contentDescription = "Toggle played")
@@ -169,6 +172,11 @@ private fun EpisodeListRow(
         Text("Saved", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
         IconButton(onClick = onRemoveDownload) {
           Text("Remove", style = MaterialTheme.typography.labelSmall)
+        }
+      } else if (downloading) {
+        CircularProgressIndicator(modifier = Modifier.padding(horizontal = 12.dp), strokeWidth = 2.dp)
+        IconButton(onClick = onRemoveDownload) {
+          Text("Cancel", style = MaterialTheme.typography.labelSmall)
         }
       } else {
         IconButton(onClick = onDownload) {
