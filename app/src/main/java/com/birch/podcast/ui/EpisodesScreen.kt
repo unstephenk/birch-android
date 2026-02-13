@@ -72,9 +72,10 @@ private fun EpisodeListRow(
       Spacer(Modifier.padding(2.dp))
       Text(ep.summary!!, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
-    if (ep.publishedAtMs != null) {
+    val date = formatEpochMsShort(ep.publishedAtMs)
+    if (!date.isNullOrBlank()) {
       Spacer(Modifier.padding(2.dp))
-      Text("${ep.publishedAtMs}", style = MaterialTheme.typography.labelSmall)
+      Text(date, style = MaterialTheme.typography.labelSmall)
     }
   }
 }

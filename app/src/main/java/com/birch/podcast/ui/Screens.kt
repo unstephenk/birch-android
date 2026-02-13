@@ -112,6 +112,12 @@ private fun PodcastRow(
     ) {
       Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
         Text(podcast.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+
+        val refreshed = formatEpochMsWithTime(podcast.lastRefreshAtMs)
+        if (!refreshed.isNullOrBlank()) {
+          Text("Updated: $refreshed", style = MaterialTheme.typography.labelSmall)
+        }
+
         if (!podcast.description.isNullOrBlank()) {
           Text(podcast.description!!, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
