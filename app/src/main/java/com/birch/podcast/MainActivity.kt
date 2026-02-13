@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -59,6 +60,7 @@ import com.birch.podcast.ui.EpisodesScreen
 import com.birch.podcast.ui.EpisodesViewModel
 import com.birch.podcast.ui.LibraryScreen
 import com.birch.podcast.ui.LibraryViewModel
+import com.birch.podcast.ui.NowPlayingScreen
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -89,6 +91,7 @@ private fun BirchApp() {
   var isPlaying by remember { mutableStateOf(false) }
   var positionMs by remember { mutableStateOf(0L) }
   var durationMs by remember { mutableStateOf(0L) }
+  var playbackSpeed by remember { mutableStateOf(1.0f) }
 
   LaunchedEffect(Unit) {
     // Ensure the service is started; required on some devices for stable playback.
@@ -121,6 +124,7 @@ private fun BirchApp() {
       override fun onPlaybackStateChanged(playbackState: Int) {
         val c = controller
         isPlaying = c?.isPlaying ?: false
+        playbackSpeed = c?.playbackParameters?.speed ?: playbackSpeed
       }
     }
   }
@@ -167,6 +171,7 @@ private fun BirchApp() {
             isPlaying = isPlaying,
             positionMs = positionMs,
             durationMs = durationMs,
+            onOpen = { nav.navigate("nowplaying") },
             onSeekTo = { ms -> controller?.seekTo(ms) },
             onPlayPause = {
               val c = controller ?: return@MiniPlayerBar
@@ -232,6 +237,35 @@ private fun BirchApp() {
             }
           )
         }
+
+        composable("nowplaying") {
+          NowPlayingScreen(
+            title = nowTitle,
+            isPlaying = isPlaying,
+            positionMs = positionMs,
+            durationMs = durationMs,
+            playbackSpeed = playbackSpeed,
+            onBack = { nav.popBackStack() },
+            onSeekTo = { ms -> controller?.seekTo(ms) },
+            onPlayPause = {
+              val c = controller ?: return@NowPlayingScreen
+              if (c.isPlaying) c.pause() else c.play()
+            },
+            onRewind15 = {
+              val c = controller ?: return@NowPlayingScreen
+              c.seekTo((c.currentPosition - 15_000).coerceAtLeast(0))
+            },
+            onForward30 = {
+              val c = controller ?: return@NowPlayingScreen
+              c.seekTo(c.currentPosition + 30_000)
+            },
+            onSetSpeed = { speed ->
+              val c = controller ?: return@NowPlayingScreen
+              c.setPlaybackSpeed(speed)
+              playbackSpeed = speed
+            }
+          )
+        }
       }
     }
   }
@@ -243,13 +277,14 @@ private fun MiniPlayerBar(
   isPlaying: Boolean,
   positionMs: Long,
   durationMs: Long,
+  onOpen: () -> Unit,
   onSeekTo: (Long) -> Unit,
   onPlayPause: () -> Unit,
   onRewind15: () -> Unit,
   onForward30: () -> Unit,
 ) {
   Card(
-    modifier = Modifier.fillMaxWidth(),
+    modifier = Modifier.fillMaxWidth().clickable { onOpen() },
     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
   ) {
