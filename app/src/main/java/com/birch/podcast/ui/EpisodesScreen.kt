@@ -64,6 +64,8 @@ fun EpisodesScreen(
   var filter by remember { mutableStateOf("All") }
   var menuOpen by remember { mutableStateOf(false) }
   var confirmClearPlayed by remember { mutableStateOf(false) }
+  var confirmMarkAllPlayed by remember { mutableStateOf(false) }
+  var confirmMarkAllUnplayed by remember { mutableStateOf(false) }
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
 
@@ -104,6 +106,20 @@ fun EpisodesScreen(
           }
           DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
             DropdownMenuItem(
+              text = { Text("Mark all played") },
+              onClick = {
+                menuOpen = false
+                confirmMarkAllPlayed = true
+              }
+            )
+            DropdownMenuItem(
+              text = { Text("Mark all unplayed") },
+              onClick = {
+                menuOpen = false
+                confirmMarkAllUnplayed = true
+              }
+            )
+            DropdownMenuItem(
               text = { Text("Clear played") },
               onClick = {
                 menuOpen = false
@@ -116,6 +132,42 @@ fun EpisodesScreen(
     },
     snackbarHost = { SnackbarHost(snackbarHostState) },
   ) { padding ->
+    if (confirmMarkAllPlayed) {
+      AlertDialog(
+        onDismissRequest = { confirmMarkAllPlayed = false },
+        title = { Text("Mark all played?") },
+        text = { Text("This will mark every episode in this podcast as played.") },
+        confirmButton = {
+          TextButton(
+            onClick = {
+              confirmMarkAllPlayed = false
+              vm.markAllPlayed()
+              scope.launch { snackbarHostState.showSnackbar("Marked all played") }
+            }
+          ) { Text("Mark") }
+        },
+        dismissButton = { TextButton(onClick = { confirmMarkAllPlayed = false }) { Text("Cancel") } }
+      )
+    }
+
+    if (confirmMarkAllUnplayed) {
+      AlertDialog(
+        onDismissRequest = { confirmMarkAllUnplayed = false },
+        title = { Text("Mark all unplayed?") },
+        text = { Text("This will mark every episode in this podcast as unplayed.") },
+        confirmButton = {
+          TextButton(
+            onClick = {
+              confirmMarkAllUnplayed = false
+              vm.markAllUnplayed()
+              scope.launch { snackbarHostState.showSnackbar("Marked all unplayed") }
+            }
+          ) { Text("Mark") }
+        },
+        dismissButton = { TextButton(onClick = { confirmMarkAllUnplayed = false }) { Text("Cancel") } }
+      )
+    }
+
     if (confirmClearPlayed) {
       AlertDialog(
         onDismissRequest = { confirmClearPlayed = false },

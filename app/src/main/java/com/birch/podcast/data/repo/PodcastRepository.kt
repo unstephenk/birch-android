@@ -50,6 +50,14 @@ class PodcastRepository(
     db.episodes().deletePlayedForPodcast(podcastId)
   }
 
+  suspend fun markAllPlayed(podcastId: Long) {
+    db.episodes().markAllPlayed(podcastId, playedAtMs = System.currentTimeMillis())
+  }
+
+  suspend fun markAllUnplayed(podcastId: Long) {
+    db.episodes().markAllUnplayed(podcastId)
+  }
+
   suspend fun refreshPodcast(podcast: PodcastEntity) {
     val parsed = fetchAndParse(podcast.feedUrl)
 

@@ -23,4 +23,12 @@ class EpisodesViewModel(
   fun clearPlayed() {
     viewModelScope.launch { repo.deletePlayedEpisodes(podcastId) }
   }
+
+  fun markAllPlayed() {
+    viewModelScope.launch { repo.markAllPlayed(podcastId) }
+  }
+
+  fun markAllUnplayed() {
+    viewModelScope.launch { repo.markAllUnplayed(podcastId) }
+  }
 }

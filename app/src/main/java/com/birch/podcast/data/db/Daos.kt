@@ -75,4 +75,10 @@ interface EpisodeDao {
     positionMs: Long,
     playedAtMs: Long,
   )
+
+  @Query("UPDATE episodes SET completed = 1, lastPlayedAtMs = :playedAtMs WHERE podcastId = :podcastId")
+  suspend fun markAllPlayed(podcastId: Long, playedAtMs: Long)
+
+  @Query("UPDATE episodes SET completed = 0, lastPositionMs = 0, lastPlayedAtMs = 0 WHERE podcastId = :podcastId")
+  suspend fun markAllUnplayed(podcastId: Long)
 }
