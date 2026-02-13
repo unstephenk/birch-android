@@ -75,7 +75,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private const val FEED_URL = "https://rss.infowars.com/Alex-mobile.html"
+private const val FEED_URL = "https://www.infowars.com/rss.xml"
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -509,12 +509,24 @@ private fun EpisodeRow(
     ) {
       Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
         Text(ep.title, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
+
         if (!ep.pubDateRaw.isNullOrBlank()) {
           Text(ep.pubDateRaw!!, style = MaterialTheme.typography.bodySmall)
         }
+
+        if (!ep.summary.isNullOrBlank()) {
+          Text(
+            ep.summary!!,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            style = MaterialTheme.typography.bodySmall
+          )
+        }
+
         if (downloading && progress != null) {
           Text("Downloading: ${(progress * 100).toInt()}%", style = MaterialTheme.typography.bodySmall)
         }
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
           if (completed) Text("Done", style = MaterialTheme.typography.labelMedium)
           if (downloaded) Text("Offline", style = MaterialTheme.typography.labelMedium)
