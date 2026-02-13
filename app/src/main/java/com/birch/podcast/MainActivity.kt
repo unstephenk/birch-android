@@ -98,12 +98,20 @@ private fun BirchApp() {
 
   fun downloadEpisode(title: String, guid: String, audioUrl: String) {
     val dm = context.getSystemService(DownloadManager::class.java) ?: return
+
+    // Some GUIDs contain characters that are illegal in filenames (or are extremely long).
+    // Sanitize to avoid DownloadManager/FS exceptions.
+    val safeBase = guid
+      .replace(Regex("[^A-Za-z0-9._-]"), "_")
+      .take(80)
+      .ifBlank { guid.hashCode().toString() }
+
     val req = DownloadManager.Request(Uri.parse(audioUrl))
       .setTitle(title)
       .setAllowedOverRoaming(true)
       .setAllowedOverMetered(true)
       .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
-      .setDestinationInExternalFilesDir(context, "downloads", "$guid.mp3")
+      .setDestinationInExternalFilesDir(context, "downloads", "$safeBase.mp3")
 
     val id = dm.enqueue(req)
     scope.launch { repo.setEpisodeDownloadId(guid, id) }
