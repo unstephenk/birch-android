@@ -122,6 +122,10 @@ private fun PodcastScreen() {
 
   // Connect to the MediaSession-backed player
   LaunchedEffect(Unit) {
+    // Ensure the service is started; required on some devices for stable playback.
+    val intent = android.content.Intent(context, PlaybackService::class.java)
+    ContextCompat.startForegroundService(context, intent)
+
     val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
     val future = MediaController.Builder(context, token).buildAsync()
     future.addListener(
@@ -132,29 +136,34 @@ private fun PodcastScreen() {
     )
   }
 
-  DisposableEffect(controller) {
-    val c = controller
-    if (c == null) return@DisposableEffect onDispose { }
-
-    val listener = object : Player.Listener {
+  // Listen to controller updates; release only when the screen is disposed.
+  val playerListener = remember {
+    object : Player.Listener {
       override fun onIsPlayingChanged(isPlayingNow: Boolean) {
         isPlaying = isPlayingNow
       }
 
       override fun onPlaybackStateChanged(playbackState: Int) {
-        isPlaying = c.isPlaying
-        // completion detection
+        val c = controller
+        isPlaying = c?.isPlaying ?: false
         if (playbackState == Player.STATE_ENDED) {
           nowPlaying?.let { playbackStore.setCompleted(it.id, true) }
         }
       }
     }
+  }
 
-    c.addListener(listener)
-
+  DisposableEffect(controller) {
+    val c = controller
+    c?.addListener(playerListener)
     onDispose {
-      c.removeListener(listener)
-      c.release()
+      c?.removeListener(playerListener)
+    }
+  }
+
+  DisposableEffect(Unit) {
+    onDispose {
+      controller?.release()
       controller = null
     }
   }
