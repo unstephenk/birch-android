@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -106,6 +107,7 @@ fun LibraryScreen(
         items(podcasts, key = { it.id }) { p ->
           PodcastRow(
             podcast = p,
+            vm = vm,
             onOpen = { onOpenPodcast(p.id) },
             onRefresh = { vm.refresh(p) },
             onUnsubscribe = { confirmUnsub = p },
@@ -120,11 +122,20 @@ fun LibraryScreen(
 @Composable
 private fun PodcastRow(
   podcast: PodcastEntity,
+  vm: LibraryViewModel,
   onOpen: () -> Unit,
   onRefresh: () -> Unit,
   onUnsubscribe: () -> Unit,
 ) {
   var menuOpen by remember { mutableStateOf(false) }
+  var totalCount by remember { mutableStateOf<Int?>(null) }
+  var unplayedCount by remember { mutableStateOf<Int?>(null) }
+
+  LaunchedEffect(podcast.id) {
+    // best-effort counts
+    totalCount = runCatching { vm.countEpisodes(podcast.id) }.getOrNull()
+    unplayedCount = runCatching { vm.countUnplayedEpisodes(podcast.id) }.getOrNull()
+  }
 
   Card(
     modifier = Modifier
@@ -147,6 +158,14 @@ private fun PodcastRow(
           val refreshed = formatEpochMsWithTime(podcast.lastRefreshAtMs)
           if (!refreshed.isNullOrBlank()) {
             Text("Updated: $refreshed", style = MaterialTheme.typography.labelSmall)
+          }
+
+          if (totalCount != null && unplayedCount != null) {
+            Text(
+              "Episodes: ${totalCount} • Unplayed: ${unplayedCount}",
+              style = MaterialTheme.typography.labelSmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
           }
 
           podcast.description?.takeIf { it.isNotBlank() }?.let { desc ->

@@ -39,6 +39,9 @@ interface EpisodeDao {
   @Query("SELECT COUNT(*) FROM episodes WHERE podcastId = :podcastId")
   suspend fun countForPodcast(podcastId: Long): Int
 
+  @Query("SELECT COUNT(*) FROM episodes WHERE podcastId = :podcastId AND completed = 0")
+  suspend fun countUnplayedForPodcast(podcastId: Long): Int
+
   @Query("DELETE FROM episodes WHERE podcastId = :podcastId")
   suspend fun deleteForPodcast(podcastId: Long)
 

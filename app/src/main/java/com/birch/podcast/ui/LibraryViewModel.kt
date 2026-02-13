@@ -27,4 +27,8 @@ class LibraryViewModel(
       repo.unsubscribe(podcast)
     }
   }
+
+  suspend fun countEpisodes(podcastId: Long): Int = repo.countEpisodes(podcastId)
+
+  suspend fun countUnplayedEpisodes(podcastId: Long): Int = repo.countUnplayedEpisodes(podcastId)
 }

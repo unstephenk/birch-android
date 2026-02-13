@@ -73,6 +73,10 @@ class PodcastRepository(
     db.podcasts().delete(podcast.id)
   }
 
+  suspend fun countEpisodes(podcastId: Long): Int = db.episodes().countForPodcast(podcastId)
+
+  suspend fun countUnplayedEpisodes(podcastId: Long): Int = db.episodes().countUnplayedForPodcast(podcastId)
+
   suspend fun enqueue(title: String, guid: String, audioUrl: String) {
     val pos = (db.queue().maxPosition() ?: 0L) + 1L
     db.queue().insert(
