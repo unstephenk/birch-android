@@ -1,5 +1,6 @@
 package com.birch.podcast.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,11 +24,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -41,6 +47,7 @@ fun QueueScreen(
   onPlayNow: (QueueItemEntity) -> Unit,
 ) {
   val queue by vm.queue.collectAsState()
+  var confirmClear by remember { mutableStateOf(false) }
 
   Scaffold(
     topBar = {
@@ -50,13 +57,30 @@ fun QueueScreen(
           IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
         },
         actions = {
-          IconButton(onClick = { vm.clear() }, enabled = queue.isNotEmpty()) {
+          IconButton(onClick = { confirmClear = true }, enabled = queue.isNotEmpty()) {
             Icon(Icons.Filled.ClearAll, contentDescription = "Clear queue")
           }
         }
       )
     }
   ) { padding ->
+    if (confirmClear) {
+      AlertDialog(
+        onDismissRequest = { confirmClear = false },
+        title = { Text("Clear queue?") },
+        text = { Text("This will remove all items from the queue.") },
+        confirmButton = {
+          TextButton(
+            onClick = {
+              confirmClear = false
+              vm.clear()
+            }
+          ) { Text("Clear") }
+        },
+        dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("Cancel") } }
+      )
+    }
+
     if (queue.isEmpty()) {
       Column(
         modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
@@ -116,6 +140,7 @@ private fun QueueRow(
   Row(
     modifier = Modifier
       .fillMaxWidth()
+      .clickable(onClick = onPlayNow)
       .padding(horizontal = 12.dp, vertical = 10.dp),
     horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically

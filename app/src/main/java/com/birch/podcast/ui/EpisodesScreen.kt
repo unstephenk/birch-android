@@ -19,6 +19,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -55,14 +56,21 @@ fun EpisodesScreen(
 ) {
   val episodes by vm.episodes.collectAsState()
   var query by remember { mutableStateOf("") }
+  var filter by remember { mutableStateOf("All") }
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
 
-  val filtered = remember(episodes, query) {
+  val filtered = remember(episodes, query, filter) {
     val q = query.trim()
-    val base = if (q.isBlank()) episodes
+    val searched = if (q.isBlank()) episodes
     else episodes.filter { ep ->
       ep.title.contains(q, ignoreCase = true) || (ep.summary?.contains(q, ignoreCase = true) ?: false)
+    }
+
+    val base = when (filter) {
+      "Unplayed" -> searched.filter { it.completed == 0 }
+      "Downloaded" -> searched.filter { !it.localFileUri.isNullOrBlank() }
+      else -> searched
     }
 
     // Sort: saved first, then newest first.
@@ -96,6 +104,19 @@ fun EpisodesScreen(
         label = { Text("Search episodes") },
         singleLine = true,
       )
+
+      Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+      ) {
+        listOf("All", "Unplayed", "Downloaded").forEach { label ->
+          FilterChip(
+            selected = filter == label,
+            onClick = { filter = label },
+            label = { Text(label) },
+          )
+        }
+      }
 
       LazyColumn(modifier = Modifier.fillMaxSize()) {
         items(filtered, key = { it.id }) { ep ->

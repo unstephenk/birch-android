@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -23,10 +24,11 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.runtime.Composable
@@ -49,6 +51,7 @@ fun LibraryScreen(
   onOpenPodcast: (Long) -> Unit,
 ) {
   val podcasts by vm.podcasts.collectAsState()
+  var confirmUnsub by remember { mutableStateOf<PodcastEntity?>(null) }
 
   Scaffold(
     topBar = {
@@ -62,6 +65,22 @@ fun LibraryScreen(
       )
     }
   ) { padding ->
+    confirmUnsub?.let { p ->
+      AlertDialog(
+        onDismissRequest = { confirmUnsub = null },
+        title = { Text("Unsubscribe?") },
+        text = { Text("Remove ‘${p.title}’ and delete its episodes?") },
+        confirmButton = {
+          TextButton(
+            onClick = {
+              confirmUnsub = null
+              vm.unsubscribe(p)
+            }
+          ) { Text("Unsubscribe") }
+        },
+        dismissButton = { TextButton(onClick = { confirmUnsub = null }) { Text("Cancel") } }
+      )
+    }
     if (podcasts.isEmpty()) {
       Column(
         modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
@@ -79,7 +98,7 @@ fun LibraryScreen(
             podcast = p,
             onOpen = { onOpenPodcast(p.id) },
             onRefresh = { vm.refresh(p) },
-            onUnsubscribe = { vm.unsubscribe(p) },
+            onUnsubscribe = { confirmUnsub = p },
           )
         }
       }
@@ -120,8 +139,8 @@ private fun PodcastRow(
             Text("Updated: $refreshed", style = MaterialTheme.typography.labelSmall)
           }
 
-          if (!podcast.description.isNullOrBlank()) {
-            Text(podcast.description!!, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+          podcast.description?.takeIf { it.isNotBlank() }?.let { desc ->
+            Text(desc, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
           }
         }
 
@@ -171,7 +190,7 @@ fun AddFeedScreen(
       TopAppBar(
         title = { Text("Add feed") },
         navigationIcon = {
-          IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
+          IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
         }
       )
     }
