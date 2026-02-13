@@ -51,6 +51,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.birch.podcast.data.db.AppDatabase
 import com.birch.podcast.data.repo.PodcastRepository
+import com.birch.podcast.playback.PlaybackPrefs
 import com.birch.podcast.playback.PlaybackService
 import com.birch.podcast.theme.BirchTheme
 import com.birch.podcast.theme.ThemePrefs
@@ -94,7 +95,7 @@ private fun BirchApp() {
   var isPlaying by remember { mutableStateOf(false) }
   var positionMs by remember { mutableStateOf(0L) }
   var durationMs by remember { mutableStateOf(0L) }
-  var playbackSpeed by remember { mutableStateOf(1.0f) }
+  var playbackSpeed by remember { mutableStateOf(PlaybackPrefs.getSpeed(context, 1.0f)) }
 
   LaunchedEffect(Unit) {
     // Ensure the service is started; required on some devices for stable playback.
@@ -140,6 +141,9 @@ private fun BirchApp() {
 
   // Position/duration ticker + persist playback
   LaunchedEffect(controller) {
+    // Apply saved playback speed whenever we get a controller.
+    controller?.setPlaybackSpeed(playbackSpeed)
+
     var lastPersistAt = 0L
     while (true) {
       val c = controller
@@ -336,6 +340,7 @@ private fun BirchApp() {
               val c = controller ?: return@NowPlayingScreen
               c.setPlaybackSpeed(speed)
               playbackSpeed = speed
+              PlaybackPrefs.setSpeed(context, speed)
             }
           )
         }
