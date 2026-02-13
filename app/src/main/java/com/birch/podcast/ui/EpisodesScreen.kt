@@ -301,10 +301,14 @@ private fun EpisodeListRow(
           downloading -> {
             val p = downloadProgress()
             IconButton(onClick = onRemoveDownload) {
-              if (p != null) {
-                CircularProgressIndicator(progress = { p }, strokeWidth = 2.dp)
-              } else {
-                CircularProgressIndicator(strokeWidth = 2.dp)
+              Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                if (p != null) {
+                  CircularProgressIndicator(progress = { p }, strokeWidth = 2.dp)
+                  Text("${(p * 100).toInt()}%", style = MaterialTheme.typography.labelSmall)
+                } else {
+                  CircularProgressIndicator(strokeWidth = 2.dp)
+                  Text("…", style = MaterialTheme.typography.labelSmall)
+                }
               }
             }
           }
