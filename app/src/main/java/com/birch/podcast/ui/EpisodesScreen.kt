@@ -23,7 +23,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Refresh
@@ -60,10 +60,16 @@ fun EpisodesScreen(
 
   val filtered = remember(episodes, query) {
     val q = query.trim()
-    if (q.isBlank()) episodes
+    val base = if (q.isBlank()) episodes
     else episodes.filter { ep ->
       ep.title.contains(q, ignoreCase = true) || (ep.summary?.contains(q, ignoreCase = true) ?: false)
     }
+
+    // Sort: saved first, then newest first.
+    base.sortedWith(
+      compareByDescending<EpisodeEntity> { !it.localFileUri.isNullOrBlank() }
+        .thenByDescending { it.publishedAtMs }
+    )
   }
 
   Scaffold(
@@ -71,7 +77,7 @@ fun EpisodesScreen(
       TopAppBar(
         title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         navigationIcon = {
-          IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
+          IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
         },
         actions = {
           IconButton(onClick = { vm.refresh() }) {
@@ -193,9 +199,9 @@ private fun EpisodeListRow(
       LinearProgressIndicator(progress = { v }, modifier = Modifier.fillMaxWidth())
     }
 
-    if (!ep.summary.isNullOrBlank()) {
+    ep.summary?.takeIf { it.isNotBlank() }?.let { summary ->
       Spacer(Modifier.padding(2.dp))
-      Text(ep.summary!!, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+      Text(summary, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
     val date = formatEpochMsShort(ep.publishedAtMs)
     if (!date.isNullOrBlank()) {

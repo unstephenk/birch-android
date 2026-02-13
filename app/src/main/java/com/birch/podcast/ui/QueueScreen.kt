@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -20,8 +20,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -45,7 +47,7 @@ fun QueueScreen(
       TopAppBar(
         title = { Text("Queue") },
         navigationIcon = {
-          IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
+          IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
         },
         actions = {
           IconButton(onClick = { vm.clear() }, enabled = queue.isNotEmpty()) {
@@ -67,15 +69,34 @@ fun QueueScreen(
       LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
         items(queue, key = { it.id }) { item ->
           val idx = queue.indexOfFirst { it.id == item.id }
-          QueueRow(
-            item = item,
-            canMoveUp = idx > 0,
-            canMoveDown = idx != -1 && idx < queue.lastIndex,
-            onMoveUp = { vm.moveUp(item.id) },
-            onMoveDown = { vm.moveDown(item.id) },
-            onPlayNow = { onPlayNow(item) },
-            onRemove = { vm.remove(item.id) },
+
+          val dismissState = rememberSwipeToDismissBoxState(
+            confirmValueChange = { v ->
+              if (v != androidx.compose.material3.SwipeToDismissBoxValue.Settled) {
+                vm.remove(item.id)
+                true
+              } else {
+                false
+              }
+            }
           )
+
+          SwipeToDismissBox(
+            state = dismissState,
+            enableDismissFromStartToEnd = false,
+            enableDismissFromEndToStart = true,
+            backgroundContent = { /* no-op for now */ },
+          ) {
+            QueueRow(
+              item = item,
+              canMoveUp = idx > 0,
+              canMoveDown = idx != -1 && idx < queue.lastIndex,
+              onMoveUp = { vm.moveUp(item.id) },
+              onMoveDown = { vm.moveDown(item.id) },
+              onPlayNow = { onPlayNow(item) },
+              onRemove = { vm.remove(item.id) },
+            )
+          }
         }
       }
     }

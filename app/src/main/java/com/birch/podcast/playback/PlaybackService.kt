@@ -21,7 +21,12 @@ class PlaybackService : MediaSessionService() {
   override fun onCreate() {
     super.onCreate()
 
-    val p = ExoPlayer.Builder(this).build().apply {
+    val p = ExoPlayer.Builder(this)
+      // Enables standard Bluetooth "seek forward/back" actions.
+      // Many headsets/cars send these instead of custom commands.
+      .setSeekBackIncrementMs(15_000)
+      .setSeekForwardIncrementMs(30_000)
+      .build().apply {
       setAudioAttributes(
         AudioAttributes.Builder()
           .setUsage(C.USAGE_MEDIA)
