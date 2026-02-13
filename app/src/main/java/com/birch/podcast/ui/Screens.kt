@@ -2,6 +2,7 @@ package com.birch.podcast.ui
 
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -105,25 +106,31 @@ private fun PodcastRow(
         onLongClick = { menuOpen = true },
       )
   ) {
-    Row(
-      modifier = Modifier.fillMaxWidth().padding(12.dp),
-      horizontalArrangement = Arrangement.SpaceBetween,
-      verticalAlignment = Alignment.CenterVertically
-    ) {
-      Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-        Text(podcast.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    Box(modifier = Modifier.fillMaxWidth()) {
+      Row(
+        modifier = Modifier.fillMaxWidth().padding(12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+          Text(podcast.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
 
-        val refreshed = formatEpochMsWithTime(podcast.lastRefreshAtMs)
-        if (!refreshed.isNullOrBlank()) {
-          Text("Updated: $refreshed", style = MaterialTheme.typography.labelSmall)
+          val refreshed = formatEpochMsWithTime(podcast.lastRefreshAtMs)
+          if (!refreshed.isNullOrBlank()) {
+            Text("Updated: $refreshed", style = MaterialTheme.typography.labelSmall)
+          }
+
+          if (!podcast.description.isNullOrBlank()) {
+            Text(podcast.description!!, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+          }
         }
 
-        if (!podcast.description.isNullOrBlank()) {
-          Text(podcast.description!!, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        IconButton(onClick = onRefresh) {
+          Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
         }
       }
 
-      // Overflow-like menu triggered by long press.
+      // Ensure menu is properly anchored/positioned.
       DropdownMenu(
         expanded = menuOpen,
         onDismissRequest = { menuOpen = false },
@@ -143,10 +150,6 @@ private fun PodcastRow(
             onUnsubscribe()
           }
         )
-      }
-
-      IconButton(onClick = onRefresh) {
-        Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
       }
     }
   }
