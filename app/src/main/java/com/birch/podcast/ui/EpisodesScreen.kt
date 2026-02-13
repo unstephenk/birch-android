@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -58,6 +59,7 @@ fun EpisodesScreen(
   onDownload: (EpisodeEntity) -> Unit,
   onRemoveDownload: (EpisodeEntity) -> Unit,
   onTogglePlayed: (EpisodeEntity) -> Unit,
+  downloadProgress: (EpisodeEntity) -> Float?,
 ) {
   val episodes by vm.episodes.collectAsState()
   var query by remember { mutableStateOf("") }
@@ -237,6 +239,7 @@ fun EpisodesScreen(
                 snackbarHostState.showSnackbar(if (ep.completed == 1) "Marked unplayed" else "Marked played")
               }
             },
+            downloadProgress = { downloadProgress(ep) },
           )
         }
       }
@@ -254,6 +257,7 @@ private fun EpisodeListRow(
   onDownload: () -> Unit,
   onRemoveDownload: () -> Unit,
   onTogglePlayed: () -> Unit,
+  downloadProgress: () -> Float?,
 ) {
   Column(
     modifier = Modifier
@@ -280,24 +284,36 @@ private fun EpisodeListRow(
       val downloaded = !ep.localFileUri.isNullOrBlank()
       val downloading = !downloaded && ep.downloadId != 0L
 
-      // Played toggle
+      // Played toggle (fixed position)
       IconButton(onClick = onTogglePlayed) {
         Icon(Icons.Filled.Check, contentDescription = "Toggle played")
       }
 
-      if (downloaded) {
-        Text("Saved", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-        IconButton(onClick = onRemoveDownload) {
-          Text("Remove", style = MaterialTheme.typography.labelSmall)
-        }
-      } else if (downloading) {
-        CircularProgressIndicator(modifier = Modifier.padding(horizontal = 12.dp), strokeWidth = 2.dp)
-        IconButton(onClick = onRemoveDownload) {
-          Text("Cancel", style = MaterialTheme.typography.labelSmall)
-        }
-      } else {
-        IconButton(onClick = onDownload) {
-          Icon(Icons.Filled.Download, contentDescription = "Download")
+      // Download area (fixed width so it doesn't push other buttons around)
+      androidx.compose.foundation.layout.Box(modifier = Modifier.width(72.dp)) {
+        when {
+          downloaded -> {
+            IconButton(onClick = onRemoveDownload) {
+              Text("Saved", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            }
+          }
+
+          downloading -> {
+            val p = downloadProgress()
+            IconButton(onClick = onRemoveDownload) {
+              if (p != null) {
+                CircularProgressIndicator(progress = { p }, strokeWidth = 2.dp)
+              } else {
+                CircularProgressIndicator(strokeWidth = 2.dp)
+              }
+            }
+          }
+
+          else -> {
+            IconButton(onClick = onDownload) {
+              Icon(Icons.Filled.Download, contentDescription = "Download")
+            }
+          }
         }
       }
     }

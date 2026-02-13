@@ -33,6 +33,9 @@ interface EpisodeDao {
   @Query("SELECT * FROM episodes WHERE guid = :guid LIMIT 1")
   suspend fun getByGuid(guid: String): EpisodeEntity?
 
+  @Query("SELECT * FROM episodes WHERE downloadId != 0 AND (localFileUri IS NULL OR localFileUri = '')")
+  fun observeDownloading(): Flow<List<EpisodeEntity>>
+
   @Insert(onConflict = OnConflictStrategy.IGNORE)
   suspend fun insertAll(episodes: List<EpisodeEntity>)
 

@@ -100,6 +100,43 @@ private fun BirchApp() {
   val db = remember { AppDatabase.get(context) }
   val repo = remember { PodcastRepository(db) }
 
+  // In-memory download progress, keyed by episode guid.
+  val dlProgress = remember { androidx.compose.runtime.mutableStateMapOf<String, Float?>() }
+  val downloadingEpisodes by repo.observeDownloadingEpisodes().collectAsState(initial = emptyList())
+  val dm = remember { context.getSystemService(DownloadManager::class.java) }
+
+  LaunchedEffect(Unit) {
+    while (true) {
+      val snapshot = downloadingEpisodes
+      snapshot.forEach { ep ->
+        val id = ep.downloadId
+        if (id == 0L) return@forEach
+
+        val p = try {
+          val q = DownloadManager.Query().setFilterById(id)
+          dm?.query(q)?.use { cur ->
+            if (!cur.moveToFirst()) return@use null
+            val total = cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
+            val soFar = cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
+            if (total > 0) (soFar.toFloat() / total.toFloat()).coerceIn(0f, 1f) else null
+          }
+        } catch (_: Throwable) {
+          null
+        }
+
+        dlProgress[ep.guid] = p
+      }
+
+      // Drop stale keys.
+      val activeGuids = snapshot.map { it.guid }.toSet()
+      dlProgress.keys.toList().forEach { g ->
+        if (!activeGuids.contains(g)) dlProgress.remove(g)
+      }
+
+      delay(1_000)
+    }
+  }
+
   fun downloadEpisode(title: String, guid: String, audioUrl: String) {
     val dm = context.getSystemService(DownloadManager::class.java) ?: return
 
@@ -490,7 +527,8 @@ private fun BirchApp() {
             },
             onTogglePlayed = { ep ->
               scope.launch { repo.setEpisodeCompleted(ep.guid, ep.completed == 0) }
-            }
+            },
+            downloadProgress = { ep -> dlProgress[ep.guid] },
           )
         }
 
