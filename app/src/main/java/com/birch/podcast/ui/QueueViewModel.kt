@@ -31,4 +31,12 @@ class QueueViewModel(
   fun moveDown(id: Long) {
     viewModelScope.launch { repo.moveQueueItem(id, +1) }
   }
+
+  fun moveToTop(id: Long) {
+    viewModelScope.launch { repo.moveQueueItemToTop(id) }
+  }
+
+  fun moveToBottom(id: Long) {
+    viewModelScope.launch { repo.moveQueueItemToBottom(id) }
+  }
 }

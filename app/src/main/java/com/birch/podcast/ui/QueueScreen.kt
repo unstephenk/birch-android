@@ -16,7 +16,10 @@ import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -117,6 +120,8 @@ fun QueueScreen(
               canMoveDown = idx != -1 && idx < queue.lastIndex,
               onMoveUp = { vm.moveUp(item.id) },
               onMoveDown = { vm.moveDown(item.id) },
+              onMoveTop = { vm.moveToTop(item.id) },
+              onMoveBottom = { vm.moveToBottom(item.id) },
               onPlayNow = { onPlayNow(item) },
               onRemove = { vm.remove(item.id) },
             )
@@ -134,9 +139,13 @@ private fun QueueRow(
   canMoveDown: Boolean,
   onMoveUp: () -> Unit,
   onMoveDown: () -> Unit,
+  onMoveTop: () -> Unit,
+  onMoveBottom: () -> Unit,
   onPlayNow: () -> Unit,
   onRemove: () -> Unit,
 ) {
+  var menuOpen by remember { mutableStateOf(false) }
+
   Row(
     modifier = Modifier
       .fillMaxWidth()
@@ -151,19 +160,39 @@ private fun QueueRow(
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-      IconButton(onClick = onMoveUp, enabled = canMoveUp) {
-        Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Move up")
+      IconButton(onClick = { menuOpen = true }) {
+        Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
       }
-      IconButton(onClick = onMoveDown, enabled = canMoveDown) {
-        Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Move down")
+      DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+        DropdownMenuItem(
+          text = { Text("Move to top") },
+          onClick = { menuOpen = false; onMoveTop() },
+          enabled = canMoveUp,
+        )
+        DropdownMenuItem(
+          text = { Text("Move to bottom") },
+          onClick = { menuOpen = false; onMoveBottom() },
+          enabled = canMoveDown,
+        )
+        DropdownMenuItem(
+          text = { Text("Move up") },
+          onClick = { menuOpen = false; onMoveUp() },
+          enabled = canMoveUp,
+        )
+        DropdownMenuItem(
+          text = { Text("Move down") },
+          onClick = { menuOpen = false; onMoveDown() },
+          enabled = canMoveDown,
+        )
+        DropdownMenuItem(
+          text = { Text("Remove") },
+          onClick = { menuOpen = false; onRemove() },
+        )
       }
+
       IconButton(onClick = onPlayNow) {
         Text("Play", style = MaterialTheme.typography.labelLarge)
       }
-      IconButton(onClick = onRemove) {
-        Icon(Icons.Filled.Delete, contentDescription = "Remove")
-      }
-      Spacer(Modifier.padding(0.dp))
     }
   }
 }

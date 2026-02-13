@@ -189,6 +189,35 @@ class PodcastRepository(
     db.queue().delete(id)
   }
 
+  suspend fun moveQueueItemToTop(id: Long) {
+    val items = db.queue().list()
+    val idx = items.indexOfFirst { it.id == id }
+    if (idx <= 0) return
+
+    val reordered = buildList {
+      add(items[idx])
+      items.forEachIndexed { i, it -> if (i != idx) add(it) }
+    }
+
+    // Avoid unique index collisions on position.
+    reordered.forEachIndexed { i, it -> db.queue().updatePosition(it.id, -(i + 1).toLong()) }
+    reordered.forEachIndexed { i, it -> db.queue().updatePosition(it.id, (i + 1).toLong()) }
+  }
+
+  suspend fun moveQueueItemToBottom(id: Long) {
+    val items = db.queue().list()
+    val idx = items.indexOfFirst { it.id == id }
+    if (idx == -1 || idx == items.lastIndex) return
+
+    val reordered = buildList {
+      items.forEachIndexed { i, it -> if (i != idx) add(it) }
+      add(items[idx])
+    }
+
+    reordered.forEachIndexed { i, it -> db.queue().updatePosition(it.id, -(i + 1).toLong()) }
+    reordered.forEachIndexed { i, it -> db.queue().updatePosition(it.id, (i + 1).toLong()) }
+  }
+
   suspend fun clearQueue() {
     db.queue().clear()
   }
