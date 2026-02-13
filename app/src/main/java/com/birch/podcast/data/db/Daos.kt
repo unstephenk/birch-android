@@ -52,4 +52,13 @@ interface EpisodeDao {
     completed: Int,
     playedAtMs: Long,
   )
+
+  @Query("UPDATE episodes SET downloadId = :downloadId WHERE guid = :guid")
+  suspend fun setDownloadId(guid: String, downloadId: Long)
+
+  @Query("SELECT * FROM episodes WHERE downloadId = :downloadId LIMIT 1")
+  suspend fun getByDownloadId(downloadId: Long): EpisodeEntity?
+
+  @Query("UPDATE episodes SET localFileUri = :uri WHERE guid = :guid")
+  suspend fun setLocalFileUri(guid: String, uri: String?)
 }

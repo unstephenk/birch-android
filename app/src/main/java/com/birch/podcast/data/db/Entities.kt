@@ -40,5 +40,9 @@ data class EpisodeEntity(
   @ColumnInfo(defaultValue = "0") val completed: Int = 0,
   @ColumnInfo(defaultValue = "0") val lastPlayedAtMs: Long = 0,
 
+  // Downloads (v1)
+  val localFileUri: String? = null,
+  @ColumnInfo(defaultValue = "0") val downloadId: Long = 0,
+
   @ColumnInfo(defaultValue = "0") val createdAtMs: Long = System.currentTimeMillis(),
 )

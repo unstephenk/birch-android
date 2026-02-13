@@ -1,6 +1,11 @@
 package com.birch.podcast
 
+import android.app.DownloadManager
+import android.content.BroadcastReceiver
 import android.content.ComponentName
+import android.content.IntentFilter
+import android.database.Cursor
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -89,6 +94,49 @@ private fun BirchApp() {
   val db = remember { AppDatabase.get(context) }
   val repo = remember { PodcastRepository(db) }
 
+  fun downloadEpisode(title: String, guid: String, audioUrl: String) {
+    val dm = context.getSystemService(DownloadManager::class.java) ?: return
+    val req = DownloadManager.Request(Uri.parse(audioUrl))
+      .setTitle(title)
+      .setAllowedOverRoaming(true)
+      .setAllowedOverMetered(true)
+      .setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN)
+      .setDestinationInExternalFilesDir(context, "downloads", "$guid.mp3")
+
+    val id = dm.enqueue(req)
+    scope.launch { repo.setEpisodeDownloadId(guid, id) }
+  }
+
+  // Listen for DownloadManager completion and attach local file uri to the episode.
+  DisposableEffect(Unit) {
+    val receiver = object : BroadcastReceiver() {
+      override fun onReceive(ctx: android.content.Context?, intent: android.content.Intent?) {
+        if (intent?.action != DownloadManager.ACTION_DOWNLOAD_COMPLETE) return
+        val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
+        if (id <= 0) return
+
+        val dm = context.getSystemService(DownloadManager::class.java) ?: return
+        val q = DownloadManager.Query().setFilterById(id)
+        val cur: Cursor = dm.query(q) ?: return
+        cur.use {
+          if (!it.moveToFirst()) return
+          val status = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+          if (status != DownloadManager.STATUS_SUCCESSFUL) return
+          val local = it.getString(it.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI)) ?: return
+
+          // Find matching episode by downloadId.
+          scope.launch {
+            val ep = repo.getEpisodeByDownloadId(id) ?: return@launch
+            repo.setEpisodeLocalFileUri(ep.guid, local)
+          }
+        }
+      }
+    }
+
+    context.registerReceiver(receiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+    onDispose { context.unregisterReceiver(receiver) }
+  }
+
   // Playback controller + UI state
   var controller by remember { mutableStateOf<MediaController?>(null) }
   var nowTitle by remember { mutableStateOf<String?>(null) }
@@ -172,18 +220,21 @@ private fun BirchApp() {
   fun playEpisode(title: String, guid: String, audioUrl: String) {
     val c = controller ?: return
 
-    val item = MediaItem.Builder()
-      .setMediaId(guid)
-      .setUri(audioUrl)
-      .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
-      .build()
-
     nowTitle = title
-    c.setMediaItem(item)
 
-    // Resume (best-effort)
     scope.launch {
       val saved = repo.getEpisodeByGuid(guid)
+      val uri = saved?.localFileUri ?: audioUrl
+
+      val item = MediaItem.Builder()
+        .setMediaId(guid)
+        .setUri(uri)
+        .setMediaMetadata(MediaMetadata.Builder().setTitle(title).build())
+        .build()
+
+      c.setMediaItem(item)
+
+      // Resume (best-effort)
       val resumeMs = (saved?.lastPositionMs ?: 0L)
       val wasCompleted = (saved?.completed ?: 0) == 1
       if (!wasCompleted && resumeMs > 5_000) {
@@ -310,6 +361,9 @@ private fun BirchApp() {
             },
             onAddToQueue = { ep ->
               scope.launch { repo.enqueue(ep.title, ep.guid, ep.audioUrl) }
+            },
+            onDownload = { ep ->
+              downloadEpisode(ep.title, ep.guid, ep.audioUrl)
             }
           )
         }

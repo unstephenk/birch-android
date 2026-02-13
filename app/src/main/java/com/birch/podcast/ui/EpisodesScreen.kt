@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -42,6 +43,7 @@ fun EpisodesScreen(
   onBack: () -> Unit,
   onPlay: (EpisodeEntity) -> Unit,
   onAddToQueue: (EpisodeEntity) -> Unit,
+  onDownload: (EpisodeEntity) -> Unit,
 ) {
   val episodes by vm.episodes.collectAsState()
   val snackbarHostState = remember { SnackbarHostState() }
@@ -69,6 +71,12 @@ fun EpisodesScreen(
               snackbarHostState.showSnackbar("Added to queue")
             }
           },
+          onDownload = {
+            onDownload(ep)
+            scope.launch {
+              snackbarHostState.showSnackbar("Download started")
+            }
+          },
         )
       }
     }
@@ -81,6 +89,7 @@ private fun EpisodeListRow(
   ep: EpisodeEntity,
   onPlay: () -> Unit,
   onAddToQueue: () -> Unit,
+  onDownload: () -> Unit,
 ) {
   Column(
     modifier = Modifier
@@ -91,7 +100,24 @@ private fun EpisodeListRow(
       )
       .padding(horizontal = 12.dp, vertical = 10.dp)
   ) {
-    Text(ep.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+    Row(
+      modifier = Modifier.fillMaxWidth(),
+      horizontalArrangement = Arrangement.SpaceBetween,
+      verticalAlignment = Alignment.CenterVertically
+    ) {
+      Text(
+        ep.title,
+        style = MaterialTheme.typography.titleMedium,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.weight(1f).padding(end = 8.dp)
+      )
+
+      val downloaded = !ep.localFileUri.isNullOrBlank()
+      IconButton(onClick = onDownload, enabled = !downloaded) {
+        Icon(Icons.Filled.Download, contentDescription = "Download")
+      }
+    }
 
     // Progress
     val showProgress = ep.durationMs > 0 && ep.lastPositionMs > 0 && ep.completed == 0
