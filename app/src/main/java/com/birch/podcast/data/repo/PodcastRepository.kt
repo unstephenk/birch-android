@@ -70,6 +70,22 @@ class PodcastRepository(
       if (!resp.isSuccessful) throw IllegalStateException("HTTP ${resp.code}")
       val body = resp.body ?: throw IllegalStateException("Empty body")
       val bytes = body.bytes()
+
+      // Some sites return HTML (Cloudflare/WAF/captcha) even for .xml URLs.
+      val ct = (resp.header("content-type") ?: "").lowercase()
+      val head = runCatching {
+        val n = minOf(bytes.size, 512)
+        String(bytes, 0, n)
+      }.getOrNull()?.lowercase().orEmpty()
+
+      val looksHtml = ct.contains("text/html") || head.contains("<!doctype") || head.contains("<html") || head.contains("<div")
+      if (looksHtml) {
+        throw IllegalStateException(
+          "That URL did not return RSS XML (it returned HTML). " +
+            "This is usually a Cloudflare/WAF block. Try a different feed URL."
+        )
+      }
+
       PodcastFeedParser.parse(feedUrl, bytes)
     }
   }
