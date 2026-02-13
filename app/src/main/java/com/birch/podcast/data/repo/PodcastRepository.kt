@@ -3,6 +3,7 @@ package com.birch.podcast.data.repo
 import com.birch.podcast.data.db.AppDatabase
 import com.birch.podcast.data.db.EpisodeEntity
 import com.birch.podcast.data.db.PodcastEntity
+import com.birch.podcast.data.db.QueueItemEntity
 import com.birch.podcast.rss.PodcastFeedParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -15,6 +16,7 @@ class PodcastRepository(
 ) {
   fun observePodcasts() = db.podcasts().observeAll()
   fun observeEpisodes(podcastId: Long) = db.episodes().observeByPodcast(podcastId)
+  fun observeQueue() = db.queue().observe()
 
   suspend fun addPodcast(feedUrl: String): Long {
     // Fetch and parse first so we can save the real title.
@@ -58,6 +60,24 @@ class PodcastRepository(
   suspend fun unsubscribe(podcast: PodcastEntity) {
     db.episodes().deleteForPodcast(podcast.id)
     db.podcasts().delete(podcast.id)
+  }
+
+  suspend fun enqueue(title: String, guid: String, audioUrl: String) {
+    val pos = (db.queue().maxPosition() ?: 0L) + 1L
+    db.queue().insert(
+      QueueItemEntity(
+        episodeGuid = guid,
+        title = title,
+        audioUrl = audioUrl,
+        position = pos,
+      )
+    )
+  }
+
+  suspend fun dequeueNext(): QueueItemEntity? {
+    val next = db.queue().peek() ?: return null
+    db.queue().delete(next.id)
+    return next
   }
 
   private suspend fun fetchAndParse(feedUrl: String): PodcastFeedParser.ParsedFeed = withContext(Dispatchers.IO) {

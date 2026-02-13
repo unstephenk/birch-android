@@ -1,6 +1,6 @@
 package com.birch.podcast.ui
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,13 +28,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.birch.podcast.data.db.EpisodeEntity
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun EpisodesScreen(
   title: String,
   vm: EpisodesViewModel,
   onBack: () -> Unit,
   onPlay: (EpisodeEntity) -> Unit,
+  onAddToQueue: (EpisodeEntity) -> Unit,
 ) {
   val episodes by vm.episodes.collectAsState()
 
@@ -50,21 +51,30 @@ fun EpisodesScreen(
   ) { padding ->
     LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
       items(episodes, key = { it.id }) { ep ->
-        EpisodeListRow(ep = ep, onPlay = { onPlay(ep) })
+        EpisodeListRow(
+          ep = ep,
+          onPlay = { onPlay(ep) },
+          onAddToQueue = { onAddToQueue(ep) },
+        )
       }
     }
   }
 }
 
+@androidx.compose.foundation.ExperimentalFoundationApi
 @Composable
 private fun EpisodeListRow(
   ep: EpisodeEntity,
   onPlay: () -> Unit,
+  onAddToQueue: () -> Unit,
 ) {
   Column(
     modifier = Modifier
       .fillMaxWidth()
-      .clickable { onPlay() }
+      .combinedClickable(
+        onClick = onPlay,
+        onLongClick = onAddToQueue,
+      )
       .padding(horizontal = 12.dp, vertical = 10.dp)
   ) {
     Text(ep.title, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)

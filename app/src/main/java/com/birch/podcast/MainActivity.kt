@@ -62,6 +62,7 @@ import com.birch.podcast.ui.LibraryScreen
 import com.birch.podcast.ui.LibraryViewModel
 import com.birch.podcast.ui.NowPlayingScreen
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -160,6 +161,31 @@ private fun BirchApp() {
     c.play()
   }
 
+  // Auto-play next in queue when the current item ends.
+  LaunchedEffect(controller) {
+    val c = controller ?: return@LaunchedEffect
+
+    val l = object : Player.Listener {
+      override fun onPlaybackStateChanged(playbackState: Int) {
+        if (playbackState == Player.STATE_ENDED) {
+          // Pick the next queued item.
+          scope.launch {
+            val next = repo.dequeueNext() ?: return@launch
+            playEpisode(next.title, next.episodeGuid, next.audioUrl)
+          }
+        }
+      }
+    }
+
+    c.addListener(l)
+    try {
+      // Keep installed until controller changes
+      while (true) delay(60_000)
+    } finally {
+      c.removeListener(l)
+    }
+  }
+
   BirchTheme(darkTheme = dark) {
     val nav = rememberNavController()
 
@@ -234,6 +260,9 @@ private fun BirchApp() {
             onBack = { nav.popBackStack() },
             onPlay = { ep ->
               playEpisode(ep.title, ep.guid, ep.audioUrl)
+            },
+            onAddToQueue = { ep ->
+              scope.launch { repo.enqueue(ep.title, ep.guid, ep.audioUrl) }
             }
           )
         }
