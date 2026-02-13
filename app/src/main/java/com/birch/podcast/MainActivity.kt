@@ -100,10 +100,12 @@ private fun BirchApp() {
   val db = remember { AppDatabase.get(context) }
   val repo = remember { PodcastRepository(db) }
 
-  // In-memory download progress, keyed by episode guid.
-  val dlProgress = remember { androidx.compose.runtime.mutableStateMapOf<String, Float?>() }
+  // In-memory download UI state, keyed by episode guid.
+  val dlUi = remember { androidx.compose.runtime.mutableStateMapOf<String, com.birch.podcast.ui.DownloadUi>() }
   val downloadingEpisodes by repo.observeDownloadingEpisodes().collectAsState(initial = emptyList())
   val downloadMgr = remember { context.getSystemService(DownloadManager::class.java) }
+  val dlSamples = remember { mutableMapOf<String, Pair<Long, Long>>() } // guid -> (bytes, timeMs)
+  val dlBps = remember { mutableMapOf<String, Double>() } // guid -> smoothed bytes/sec
 
   LaunchedEffect(Unit) {
     while (true) {
@@ -112,12 +114,31 @@ private fun BirchApp() {
         val id = ep.downloadId
         if (id == 0L) return@forEach
 
-        val p = try {
+        val ui = try {
           val q = DownloadManager.Query().setFilterById(id)
           downloadMgr?.query(q)?.use { cur ->
             if (!cur.moveToFirst()) return@use null
 
             val status = cur.getInt(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
+
+            val total = cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)).takeIf { it > 0 }
+            val soFar = cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)).takeIf { it >= 0 }
+
+            // Update speed estimate.
+            if (soFar != null) {
+              val now = System.currentTimeMillis()
+              val prev = dlSamples[ep.guid]
+              if (prev != null) {
+                val dBytes = (soFar - prev.first).coerceAtLeast(0)
+                val dMs = (now - prev.second).coerceAtLeast(1)
+                val instBps = dBytes.toDouble() / (dMs.toDouble() / 1000.0)
+                val old = dlBps[ep.guid]
+                val next = if (old == null) instBps else (old * 0.7 + instBps * 0.3)
+                dlBps[ep.guid] = next
+              }
+              dlSamples[ep.guid] = soFar to now
+            }
+
             if (status == DownloadManager.STATUS_SUCCESSFUL) {
               val local = cur.getString(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI))
               if (!local.isNullOrBlank()) {
@@ -125,24 +146,39 @@ private fun BirchApp() {
                 // Ensure we persist the local URI so the UI switches to "downloaded".
                 scope.launch { repo.setEpisodeLocalFileUri(ep.guid, local) }
               }
-              return@use 1f
             }
 
-            val total = cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES))
-            val soFar = cur.getLong(cur.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR))
-            if (total > 0) (soFar.toFloat() / total.toFloat()).coerceIn(0f, 1f) else null
+            val progress = if (status == DownloadManager.STATUS_SUCCESSFUL) 1f
+              else if (total != null && soFar != null && total > 0) (soFar.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+              else null
+
+            val bps = dlBps[ep.guid]
+            val etaSec = if (total != null && soFar != null && bps != null && bps > 50) {
+              ((total - soFar).coerceAtLeast(0).toDouble() / bps).toLong().coerceAtLeast(0)
+            } else null
+
+            com.birch.podcast.ui.DownloadUi(
+              progress = progress,
+              soFarBytes = soFar,
+              totalBytes = total,
+              etaSec = etaSec,
+            )
           }
         } catch (_: Throwable) {
           null
         }
 
-        dlProgress[ep.guid] = p
+        if (ui != null) dlUi[ep.guid] = ui
       }
 
       // Drop stale keys.
       val activeGuids = snapshot.map { it.guid }.toSet()
-      dlProgress.keys.toList().forEach { g ->
-        if (!activeGuids.contains(g)) dlProgress.remove(g)
+      dlUi.keys.toList().forEach { g ->
+        if (!activeGuids.contains(g)) {
+          dlUi.remove(g)
+          dlSamples.remove(g)
+          dlBps.remove(g)
+        }
       }
 
       delay(1_000)
@@ -540,7 +576,7 @@ private fun BirchApp() {
             onTogglePlayed = { ep ->
               scope.launch { repo.setEpisodeCompleted(ep.guid, ep.completed == 0) }
             },
-            downloadProgress = { ep -> dlProgress[ep.guid] },
+            downloadProgress = { ep -> dlUi[ep.guid] },
           )
         }
 

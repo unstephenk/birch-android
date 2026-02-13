@@ -60,7 +60,7 @@ fun EpisodesScreen(
   onDownload: (EpisodeEntity) -> Unit,
   onRemoveDownload: (EpisodeEntity) -> Unit,
   onTogglePlayed: (EpisodeEntity) -> Unit,
-  downloadProgress: (EpisodeEntity) -> Float?,
+  downloadProgress: (EpisodeEntity) -> DownloadUi?,
 ) {
   val episodes by vm.episodes.collectAsState()
   var query by remember { mutableStateOf("") }
@@ -258,7 +258,7 @@ private fun EpisodeListRow(
   onDownload: () -> Unit,
   onRemoveDownload: () -> Unit,
   onTogglePlayed: () -> Unit,
-  downloadProgress: () -> Float?,
+  downloadProgress: () -> DownloadUi?,
 ) {
   Column(
     modifier = Modifier
@@ -331,7 +331,8 @@ private fun EpisodeListRow(
           }
 
           downloading -> {
-            val p = downloadProgress()
+            val ui = downloadProgress()
+            val p = ui?.progress
             IconButton(onClick = onRemoveDownload) {
               Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 if (p != null) {
@@ -340,6 +341,18 @@ private fun EpisodeListRow(
                 } else {
                   CircularProgressIndicator(strokeWidth = 2.dp)
                   Text("…", style = MaterialTheme.typography.labelSmall)
+                }
+
+                val soFar = ui?.soFarBytes
+                val total = ui?.totalBytes
+                val eta = ui?.etaSec
+                if (soFar != null && total != null && total > 0) {
+                  Text("${fmtBytes(soFar)}/${fmtBytes(total)}", style = MaterialTheme.typography.labelSmall)
+                } else if (soFar != null) {
+                  Text(fmtBytes(soFar), style = MaterialTheme.typography.labelSmall)
+                }
+                if (eta != null && eta > 0) {
+                  Text("ETA ${fmtEta(eta)}", style = MaterialTheme.typography.labelSmall)
                 }
               }
             }
