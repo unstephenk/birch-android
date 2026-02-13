@@ -50,6 +50,9 @@ dependencies {
   implementation("androidx.compose.ui:ui")
   implementation("androidx.compose.ui:ui-tooling-preview")
 
+  // Persist settings (theme)
+  implementation("androidx.datastore:datastore-preferences:1.1.1")
+
   // Networking + feed parse
   implementation("com.squareup.okhttp3:okhttp:4.12.0")
   implementation("org.jsoup:jsoup:1.17.2")

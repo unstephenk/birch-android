@@ -35,6 +35,8 @@ import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -44,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,6 +69,8 @@ import com.birch.podcast.model.Episode
 import com.birch.podcast.playback.PlaybackService
 import com.birch.podcast.playback.PlaybackStore
 import com.birch.podcast.rss.RssClient
+import com.birch.podcast.theme.BirchTheme
+import com.birch.podcast.theme.ThemePrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -81,16 +86,32 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun BirchApp() {
-  MaterialTheme {
+  val context = androidx.compose.ui.platform.LocalContext.current
+  val scope = rememberCoroutineScope()
+  val prefs = remember { ThemePrefs(context) }
+
+  // Default to dark if not set yet.
+  val storedDark = prefs.darkTheme.collectAsState(initial = true).value
+  val dark = storedDark ?: true
+
+  BirchTheme(darkTheme = dark) {
     Surface(modifier = Modifier.fillMaxSize()) {
-      PodcastScreen()
+      PodcastScreen(
+        darkTheme = dark,
+        onToggleTheme = { next ->
+          scope.launch { prefs.setDarkTheme(next) }
+        }
+      )
     }
   }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PodcastScreen() {
+private fun PodcastScreen(
+  darkTheme: Boolean,
+  onToggleTheme: (Boolean) -> Unit,
+) {
   val scope = rememberCoroutineScope()
   val rss = remember { RssClient() }
 
@@ -231,6 +252,12 @@ private fun PodcastScreen() {
       TopAppBar(
         title = { Text("Birch") },
         actions = {
+          IconButton(onClick = { onToggleTheme(!darkTheme) }) {
+            Icon(
+              if (darkTheme) Icons.Filled.LightMode else Icons.Filled.DarkMode,
+              contentDescription = "Toggle theme"
+            )
+          }
           IconButton(onClick = { refresh() }, enabled = !loading) {
             Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
           }
