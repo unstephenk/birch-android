@@ -20,6 +20,9 @@ interface PodcastDao {
 
   @Query("UPDATE podcasts SET lastRefreshAtMs = :ts WHERE id = :id")
   suspend fun setLastRefresh(id: Long, ts: Long)
+
+  @Query("DELETE FROM podcasts WHERE id = :id")
+  suspend fun delete(id: Long)
 }
 
 @Dao

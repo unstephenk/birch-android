@@ -53,6 +53,11 @@ class PodcastRepository(
     db.podcasts().setLastRefresh(podcast.id, System.currentTimeMillis())
   }
 
+  suspend fun unsubscribe(podcast: PodcastEntity) {
+    db.episodes().deleteForPodcast(podcast.id)
+    db.podcasts().delete(podcast.id)
+  }
+
   private suspend fun fetchAndParse(feedUrl: String): PodcastFeedParser.ParsedFeed {
     val req = Request.Builder()
       .url(feedUrl)

@@ -21,4 +21,10 @@ class LibraryViewModel(
       repo.refreshPodcast(podcast)
     }
   }
+
+  fun unsubscribe(podcast: PodcastEntity) {
+    viewModelScope.launch {
+      repo.unsubscribe(podcast)
+    }
+  }
 }

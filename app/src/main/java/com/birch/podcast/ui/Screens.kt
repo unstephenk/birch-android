@@ -1,6 +1,6 @@
 package com.birch.podcast.ui
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +17,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,7 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.birch.podcast.data.db.PodcastEntity
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun LibraryScreen(
   vm: LibraryViewModel,
@@ -71,24 +74,36 @@ fun LibraryScreen(
     } else {
       LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
         items(podcasts, key = { it.id }) { p ->
-          PodcastRow(podcast = p, onOpen = { onOpenPodcast(p.id) }, onRefresh = { vm.refresh(p) })
+          PodcastRow(
+            podcast = p,
+            onOpen = { onOpenPodcast(p.id) },
+            onRefresh = { vm.refresh(p) },
+            onUnsubscribe = { vm.unsubscribe(p) },
+          )
         }
       }
     }
   }
 }
 
+@androidx.compose.foundation.ExperimentalFoundationApi
 @Composable
 private fun PodcastRow(
   podcast: PodcastEntity,
   onOpen: () -> Unit,
   onRefresh: () -> Unit,
+  onUnsubscribe: () -> Unit,
 ) {
+  var menuOpen by remember { mutableStateOf(false) }
+
   Card(
     modifier = Modifier
       .fillMaxWidth()
       .padding(horizontal = 12.dp, vertical = 8.dp)
-      .clickable { onOpen() }
+      .combinedClickable(
+        onClick = onOpen,
+        onLongClick = { menuOpen = true },
+      )
   ) {
     Row(
       modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -100,6 +115,28 @@ private fun PodcastRow(
         if (!podcast.description.isNullOrBlank()) {
           Text(podcast.description!!, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
+      }
+
+      // Overflow-like menu triggered by long press.
+      DropdownMenu(
+        expanded = menuOpen,
+        onDismissRequest = { menuOpen = false },
+        properties = PopupProperties(focusable = true)
+      ) {
+        DropdownMenuItem(
+          text = { Text("Refresh") },
+          onClick = {
+            menuOpen = false
+            onRefresh()
+          }
+        )
+        DropdownMenuItem(
+          text = { Text("Unsubscribe") },
+          onClick = {
+            menuOpen = false
+            onUnsubscribe()
+          }
+        )
       }
 
       IconButton(onClick = onRefresh) {
