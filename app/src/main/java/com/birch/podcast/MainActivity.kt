@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.widget.Toast
 import java.io.File
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -143,13 +144,20 @@ private fun BirchApp() {
         cur.use {
           if (!it.moveToFirst()) return
           val status = it.getInt(it.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS))
-          if (status != DownloadManager.STATUS_SUCCESSFUL) return
-          val local = it.getString(it.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI)) ?: return
 
           // Find matching episode by downloadId.
           scope.launch {
             val ep = repo.getEpisodeByDownloadId(id) ?: return@launch
-            repo.setEpisodeLocalFileUri(ep.guid, local)
+
+            if (status == DownloadManager.STATUS_SUCCESSFUL) {
+              val local = it.getString(it.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI)) ?: return@launch
+              repo.setEpisodeLocalFileUri(ep.guid, local)
+              Toast.makeText(context, "Download complete", Toast.LENGTH_SHORT).show()
+            } else {
+              // Failed / canceled
+              repo.clearEpisodeDownload(ep.guid)
+              Toast.makeText(context, "Download failed", Toast.LENGTH_SHORT).show()
+            }
           }
         }
       }
