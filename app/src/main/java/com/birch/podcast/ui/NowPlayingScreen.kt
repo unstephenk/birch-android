@@ -51,6 +51,7 @@ fun NowPlayingScreen(
   sleepTimerLabel: String?,
   skipSilenceEnabled: Boolean,
   boostVolumeEnabled: Boolean,
+  artworkUrl: String?,
   trimIntroSec: Int,
   trimOutroSec: Int,
   chapters: List<ChapterUi>,

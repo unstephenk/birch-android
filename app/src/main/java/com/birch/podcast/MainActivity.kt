@@ -308,6 +308,7 @@ private fun BirchApp() {
   var nowPodcastId by remember { mutableStateOf<Long?>(null) }
   var nowPodcastTitle by remember { mutableStateOf<String?>(null) }
   var nowEpisodeDate by remember { mutableStateOf<String?>(null) }
+  var nowArtworkUrl by remember { mutableStateOf<String?>(null) }
   var nowTrimIntroMs by remember { mutableStateOf(0L) }
   var nowTrimOutroMs by remember { mutableStateOf(0L) }
   var chapters by remember { mutableStateOf<List<ChapterUi>>(emptyList()) }
@@ -466,10 +467,19 @@ private fun BirchApp() {
       val pitch = if (effectivePodcastId != null) PlaybackPrefs.getPitchForPodcast(context, effectivePodcastId) else PlaybackPrefs.getPitch(context)
       val subtitle = "${speed}x • ${pitch}p"
 
+      val podcast = effectivePodcastId?.let { id -> runCatching { db.podcasts().getById(id) }.getOrNull() }
+      val artworkUri = podcast?.imageUrl?.takeIf { it.isNotBlank() }?.let { runCatching { Uri.parse(it) }.getOrNull() }
+
       val item = MediaItem.Builder()
         .setMediaId(guid)
         .setUri(uri)
-        .setMediaMetadata(MediaMetadata.Builder().setTitle(title).setSubtitle(subtitle).build())
+        .setMediaMetadata(
+          MediaMetadata.Builder()
+            .setTitle(title)
+            .setSubtitle(subtitle)
+            .setArtworkUri(artworkUri)
+            .build()
+        )
         .build()
 
       c.setMediaItem(item)
@@ -481,7 +491,8 @@ private fun BirchApp() {
 
       // Persist and cache episode context for UI
       nowPodcastId = effectivePodcastId
-      nowPodcastTitle = effectivePodcastId?.let { id -> runCatching { db.podcasts().getById(id)?.title }.getOrNull() }
+      nowPodcastTitle = podcast?.title
+      nowArtworkUrl = podcast?.imageUrl
       nowEpisodeDate = saved?.publishedAtMs?.let { ms -> com.birch.podcast.ui.formatEpochMsShort(ms) }
       nowTrimIntroMs = if (effectivePodcastId != null) PlaybackPrefs.getTrimIntroMs(context, effectivePodcastId) else 0L
       nowTrimOutroMs = if (effectivePodcastId != null) PlaybackPrefs.getTrimOutroMs(context, effectivePodcastId) else 0L
@@ -741,6 +752,7 @@ private fun BirchApp() {
             sleepTimerLabel = sleepTimerLabel,
             skipSilenceEnabled = skipSilenceEnabled,
             boostVolumeEnabled = boostVolumeEnabled,
+            artworkUrl = nowArtworkUrl,
             trimIntroSec = (nowTrimIntroMs / 1000L).toInt(),
             trimOutroSec = (nowTrimOutroMs / 1000L).toInt(),
             chapters = chapters,
