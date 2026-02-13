@@ -400,6 +400,10 @@ private fun BirchApp() {
           val vm = remember { LibraryViewModel(repo) }
           LibraryScreen(
             vm = vm,
+            darkTheme = dark,
+            onToggleTheme = {
+              scope.launch { themePrefs.setDarkTheme(!dark) }
+            },
             onAdd = { nav.navigate("add") },
             onOpenPodcast = { id -> nav.navigate("podcast/$id") },
           )

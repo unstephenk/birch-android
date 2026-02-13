@@ -28,8 +28,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -47,6 +49,8 @@ import com.birch.podcast.data.db.PodcastEntity
 @Composable
 fun LibraryScreen(
   vm: LibraryViewModel,
+  darkTheme: Boolean,
+  onToggleTheme: () -> Unit,
   onAdd: () -> Unit,
   onOpenPodcast: (Long) -> Unit,
 ) {
@@ -58,6 +62,12 @@ fun LibraryScreen(
       TopAppBar(
         title = { Text("Library") },
         actions = {
+          IconButton(onClick = onToggleTheme) {
+            Icon(
+              if (darkTheme) Icons.Filled.DarkMode else Icons.Filled.LightMode,
+              contentDescription = "Toggle theme",
+            )
+          }
           IconButton(onClick = onAdd) {
             Icon(Icons.Filled.Add, contentDescription = "Add feed")
           }
