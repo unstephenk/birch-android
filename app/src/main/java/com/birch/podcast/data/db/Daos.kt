@@ -36,6 +36,9 @@ interface EpisodeDao {
   @Query("SELECT * FROM episodes WHERE downloadId != 0 AND (localFileUri IS NULL OR localFileUri = '')")
   fun observeDownloading(): Flow<List<EpisodeEntity>>
 
+  @Query("SELECT * FROM episodes WHERE localFileUri IS NOT NULL AND localFileUri != '' ORDER BY lastPlayedAtMs DESC, publishedAtMs DESC")
+  fun observeDownloaded(): Flow<List<EpisodeEntity>>
+
   @Insert(onConflict = OnConflictStrategy.IGNORE)
   suspend fun insertAll(episodes: List<EpisodeEntity>)
 

@@ -29,6 +29,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -53,6 +54,7 @@ fun LibraryScreen(
   darkTheme: Boolean,
   onToggleTheme: () -> Unit,
   onAdd: () -> Unit,
+  onOpenDownloads: () -> Unit,
   onOpenPodcast: (Long) -> Unit,
 ) {
   val podcasts by vm.podcasts.collectAsState()
@@ -68,6 +70,9 @@ fun LibraryScreen(
               if (darkTheme) Icons.Filled.DarkMode else Icons.Filled.LightMode,
               contentDescription = "Toggle theme",
             )
+          }
+          IconButton(onClick = onOpenDownloads) {
+            Icon(Icons.Filled.Download, contentDescription = "Downloads")
           }
           IconButton(onClick = onAdd) {
             Icon(Icons.Filled.Add, contentDescription = "Add feed")

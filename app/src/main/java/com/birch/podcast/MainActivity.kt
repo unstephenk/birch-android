@@ -61,6 +61,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.birch.podcast.data.db.AppDatabase
 import com.birch.podcast.data.repo.PodcastRepository
+import com.birch.podcast.downloads.DownloadPrefs
 import com.birch.podcast.playback.PlaybackPrefs
 import com.birch.podcast.playback.PlaybackService
 import com.birch.podcast.theme.BirchTheme
@@ -71,6 +72,7 @@ import com.birch.podcast.ui.EpisodesScreen
 import com.birch.podcast.ui.EpisodesViewModel
 import com.birch.podcast.ui.LibraryScreen
 import com.birch.podcast.ui.LibraryViewModel
+import com.birch.podcast.ui.DownloadsScreen
 import com.birch.podcast.ui.NowPlayingScreen
 import com.birch.podcast.ui.QueueScreen
 import com.birch.podcast.ui.QueueViewModel
@@ -195,12 +197,22 @@ private fun BirchApp() {
       .take(80)
       .ifBlank { guid.hashCode().toString() }
 
+    val showNotif = DownloadPrefs.showSystemNotification(context, default = true)
+    val wifiOnly = DownloadPrefs.wifiOnly(context, default = false)
+
     val baseReq = DownloadManager.Request(Uri.parse(audioUrl))
       .setTitle(title)
       .setAllowedOverRoaming(true)
-      .setAllowedOverMetered(true)
+      .setAllowedOverMetered(!wifiOnly)
+      .setAllowedNetworkTypes(
+        if (wifiOnly) DownloadManager.Request.NETWORK_WIFI
+        else (DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
+      )
       // Some Android versions/devices reject VISIBILITY_HIDDEN for 3P apps.
-      .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+      .setNotificationVisibility(
+        if (showNotif) DownloadManager.Request.VISIBILITY_VISIBLE
+        else DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+      )
       .setDestinationInExternalFilesDir(context, "downloads", "$safeBase.mp3")
 
     val id = try {
@@ -501,6 +513,7 @@ private fun BirchApp() {
               scope.launch { themePrefs.setDarkTheme(!dark) }
             },
             onAdd = { nav.navigate("add") },
+            onOpenDownloads = { nav.navigate("downloads") },
             onOpenPodcast = { id -> nav.navigate("podcast/$id") },
           )
         }
@@ -574,7 +587,26 @@ private fun BirchApp() {
               }
             },
             onTogglePlayed = { ep ->
-              scope.launch { repo.setEpisodeCompleted(ep.guid, ep.completed == 0) }
+              scope.launch {
+                val nowCompleted = ep.completed == 0
+                repo.setEpisodeCompleted(ep.guid, nowCompleted)
+
+                if (nowCompleted && DownloadPrefs.autoDeleteOnPlayed(context, default = false)) {
+                  // Auto-delete the local file/download when marked played.
+                  val dmSvc = context.getSystemService(DownloadManager::class.java)
+                  if (ep.downloadId != 0L) runCatching { dmSvc?.remove(ep.downloadId) }
+
+                  val local = ep.localFileUri
+                  if (!local.isNullOrBlank()) {
+                    runCatching {
+                      val uri = Uri.parse(local)
+                      context.contentResolver.delete(uri, null, null)
+                    }
+                  }
+
+                  repo.clearEpisodeDownload(ep.guid)
+                }
+              }
             },
             downloadProgress = { ep -> dlUi[ep.guid] },
           )
@@ -630,6 +662,14 @@ private fun BirchApp() {
             onPlayNow = { item ->
               playEpisode(item.title, item.episodeGuid, item.audioUrl)
             }
+          )
+        }
+
+        composable("downloads") {
+          DownloadsScreen(
+            repo = repo,
+            onBack = { nav.popBackStack() },
+            onPlay = { ep -> playEpisode(ep.title, ep.guid, ep.audioUrl) },
           )
         }
       }

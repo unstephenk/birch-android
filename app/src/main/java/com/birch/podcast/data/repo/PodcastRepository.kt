@@ -17,6 +17,7 @@ class PodcastRepository(
   fun observePodcasts() = db.podcasts().observeAll()
   fun observeEpisodes(podcastId: Long) = db.episodes().observeByPodcast(podcastId)
   fun observeDownloadingEpisodes() = db.episodes().observeDownloading()
+  fun observeDownloadedEpisodes() = db.episodes().observeDownloaded()
   fun observeQueue() = db.queue().observe()
 
   suspend fun addPodcast(feedUrl: String): Long {
