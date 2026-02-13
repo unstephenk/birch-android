@@ -39,6 +39,13 @@ class PodcastRepository(
     return podcastId
   }
 
+  suspend fun getPodcastById(id: Long) = db.podcasts().getById(id)
+
+  suspend fun refreshPodcastById(podcastId: Long) {
+    val podcast = db.podcasts().getById(podcastId) ?: return
+    refreshPodcast(podcast)
+  }
+
   suspend fun refreshPodcast(podcast: PodcastEntity) {
     val parsed = fetchAndParse(podcast.feedUrl)
 

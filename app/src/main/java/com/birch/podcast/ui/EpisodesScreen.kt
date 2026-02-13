@@ -25,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -70,6 +71,11 @@ fun EpisodesScreen(
         title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
         navigationIcon = {
           IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back") }
+        },
+        actions = {
+          IconButton(onClick = { vm.refresh() }) {
+            Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+          }
         }
       )
     },
