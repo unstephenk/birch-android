@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -23,10 +24,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,12 +49,16 @@ fun DownloadsScreen(
   onBack: () -> Unit,
   onPlay: (EpisodeEntity) -> Unit,
   onRetry: (EpisodeEntity) -> Unit,
+  onCancelAllActive: (List<EpisodeEntity>) -> Unit,
+  onClearAllFailed: (List<EpisodeEntity>) -> Unit,
 ) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
   val downloading by repo.observeDownloadingEpisodes().collectAsState(initial = emptyList())
   val saved by repo.observeDownloadedEpisodes().collectAsState(initial = emptyList())
   val failed by repo.observeFailedDownloads().collectAsState(initial = emptyList())
+
+  var menuOpen by remember { mutableStateOf(false) }
 
   Scaffold(
     topBar = {
@@ -57,6 +67,29 @@ fun DownloadsScreen(
         navigationIcon = {
           IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+          }
+        },
+        actions = {
+          IconButton(onClick = { menuOpen = true }) {
+            Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
+          }
+          DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+              text = { Text("Cancel all active") },
+              enabled = downloading.isNotEmpty(),
+              onClick = {
+                menuOpen = false
+                onCancelAllActive(downloading)
+              },
+            )
+            DropdownMenuItem(
+              text = { Text("Clear all failed") },
+              enabled = failed.isNotEmpty(),
+              onClick = {
+                menuOpen = false
+                onClearAllFailed(failed)
+              },
+            )
           }
         }
       )

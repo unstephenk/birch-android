@@ -878,6 +878,24 @@ private fun BirchApp() {
               scope.launch { repo.setEpisodeDownloadStatus(ep.guid, null, null) }
               downloadEpisode(ep.title, ep.guid, ep.audioUrl)
             },
+            onCancelAllActive = { eps ->
+              scope.launch {
+                val dmSvc = context.getSystemService(DownloadManager::class.java)
+                eps.forEach { ep ->
+                  if (ep.downloadId != 0L) runCatching { dmSvc?.remove(ep.downloadId) }
+                  repo.clearEpisodeDownload(ep.guid)
+                  repo.setEpisodeDownloadStatus(ep.guid, null, null)
+                }
+              }
+            },
+            onClearAllFailed = { eps ->
+              scope.launch {
+                eps.forEach { ep ->
+                  repo.setEpisodeDownloadStatus(ep.guid, null, null)
+                  repo.clearEpisodeDownload(ep.guid)
+                }
+              }
+            }
           )
         }
 
