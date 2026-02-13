@@ -62,6 +62,7 @@ fun NowPlayingScreen(
   var timerMenuOpen by remember { mutableStateOf(false) }
 
   Scaffold(
+    containerColor = MaterialTheme.colorScheme.surface,
     topBar = {
       TopAppBar(
         title = { Text("Now Playing") },
