@@ -50,6 +50,7 @@ import androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import androidx.navigation.NavType
@@ -185,6 +186,7 @@ private fun BirchApp() {
   var positionMs by remember { mutableStateOf(0L) }
   var durationMs by remember { mutableStateOf(0L) }
   var playbackSpeed by remember { mutableStateOf(PlaybackPrefs.getSpeed(context, 1.0f)) }
+  var playbackPitch by remember { mutableStateOf(PlaybackPrefs.getPitch(context, 1.0f)) }
 
   // Sleep timer
   var sleepTimerLabel by remember { mutableStateOf<String?>(null) }
@@ -260,8 +262,8 @@ private fun BirchApp() {
 
   // Position/duration ticker + persist playback
   LaunchedEffect(controller) {
-    // Apply saved playback speed whenever we get a controller.
-    controller?.setPlaybackSpeed(playbackSpeed)
+    // Apply saved playback speed/pitch whenever we get a controller.
+    controller?.setPlaybackParameters(PlaybackParameters(playbackSpeed, playbackPitch))
 
     var lastPersistAt = 0L
     while (true) {
@@ -490,6 +492,7 @@ private fun BirchApp() {
             positionMs = positionMs,
             durationMs = durationMs,
             playbackSpeed = playbackSpeed,
+            playbackPitch = playbackPitch,
             sleepTimerLabel = sleepTimerLabel,
             onBack = { nav.popBackStack() },
             onOpenQueue = { nav.navigate("queue") },
@@ -511,9 +514,15 @@ private fun BirchApp() {
             },
             onSetSpeed = { speed ->
               val c = controller ?: return@NowPlayingScreen
-              c.setPlaybackSpeed(speed)
+              c.setPlaybackParameters(PlaybackParameters(speed, playbackPitch))
               playbackSpeed = speed
               PlaybackPrefs.setSpeed(context, speed)
+            },
+            onSetPitch = { pitch ->
+              val c = controller ?: return@NowPlayingScreen
+              c.setPlaybackParameters(PlaybackParameters(playbackSpeed, pitch))
+              playbackPitch = pitch
+              PlaybackPrefs.setPitch(context, pitch)
             }
           )
         }

@@ -43,6 +43,7 @@ fun NowPlayingScreen(
   positionMs: Long,
   durationMs: Long,
   playbackSpeed: Float,
+  playbackPitch: Float,
   sleepTimerLabel: String?,
   onBack: () -> Unit,
   onOpenQueue: () -> Unit,
@@ -54,8 +55,10 @@ fun NowPlayingScreen(
   onRewind15: () -> Unit,
   onForward30: () -> Unit,
   onSetSpeed: (Float) -> Unit,
+  onSetPitch: (Float) -> Unit,
 ) {
   var speedMenuOpen by remember { mutableStateOf(false) }
+  var pitchMenuOpen by remember { mutableStateOf(false) }
   var timerMenuOpen by remember { mutableStateOf(false) }
 
   Scaffold(
@@ -118,6 +121,21 @@ fun NowPlayingScreen(
                 onClick = {
                   speedMenuOpen = false
                   onSetSpeed(s)
+                }
+              )
+            }
+          }
+
+          IconButton(onClick = { pitchMenuOpen = true }) {
+            Text("${playbackPitch}p", style = MaterialTheme.typography.labelLarge)
+          }
+          DropdownMenu(expanded = pitchMenuOpen, onDismissRequest = { pitchMenuOpen = false }) {
+            listOf(0.9f, 1.0f, 1.1f).forEach { p ->
+              DropdownMenuItem(
+                text = { Text("${p}x pitch") },
+                onClick = {
+                  pitchMenuOpen = false
+                  onSetPitch(p)
                 }
               )
             }
