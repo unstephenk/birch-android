@@ -7,6 +7,7 @@ import android.content.IntentFilter
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import java.io.File
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Arrangement
@@ -414,7 +415,31 @@ private fun BirchApp() {
             },
             onRemoveDownload = { ep ->
               scope.launch {
-                // Best-effort: we keep the file for now; just detach it from the episode.
+                // Best-effort: remove the underlying download/file when possible.
+                val dm = context.getSystemService(DownloadManager::class.java)
+                if (ep.downloadId != 0L) {
+                  try {
+                    dm?.remove(ep.downloadId)
+                  } catch (_: Throwable) {
+                    // ignore
+                  }
+                }
+
+                val local = ep.localFileUri
+                if (!local.isNullOrBlank()) {
+                  try {
+                    val uri = Uri.parse(local)
+                    if (uri.scheme == "file") {
+                      val f = File(uri.path ?: "")
+                      if (f.exists()) f.delete()
+                    } else {
+                      context.contentResolver.delete(uri, null, null)
+                    }
+                  } catch (_: Throwable) {
+                    // ignore
+                  }
+                }
+
                 repo.clearEpisodeDownload(ep.guid)
               }
             },
