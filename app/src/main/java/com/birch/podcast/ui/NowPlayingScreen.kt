@@ -13,6 +13,8 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -26,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -64,6 +67,8 @@ fun NowPlayingScreen(
   onPlayPause: () -> Unit,
   onRewind15: () -> Unit,
   onForward30: () -> Unit,
+  onPlayFromBeginning: () -> Unit,
+  onMarkPlayed: () -> Unit,
   onSetSpeed: (Float) -> Unit,
   onSetPitch: (Float) -> Unit,
   onToggleSkipSilence: (Boolean) -> Unit,
@@ -220,6 +225,23 @@ fun NowPlayingScreen(
       }
 
       Spacer(Modifier.padding(4.dp))
+
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        TextButton(onClick = onPlayFromBeginning) {
+          Icon(Icons.Filled.Replay, contentDescription = null)
+          Spacer(Modifier.padding(4.dp))
+          Text("From start")
+        }
+        TextButton(onClick = onMarkPlayed) {
+          Icon(Icons.Filled.Done, contentDescription = null)
+          Spacer(Modifier.padding(4.dp))
+          Text("Mark played")
+        }
+      }
 
       // Toggles
       Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

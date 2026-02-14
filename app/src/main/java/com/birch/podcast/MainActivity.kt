@@ -835,6 +835,38 @@ private fun BirchApp() {
               val c = controller ?: return@NowPlayingScreen
               c.seekTo(c.currentPosition + 30_000)
             },
+            onPlayFromBeginning = {
+              val c = controller ?: return@NowPlayingScreen
+              c.seekTo(0)
+              c.play()
+            },
+            onMarkPlayed = {
+              val c = controller ?: return@NowPlayingScreen
+              val guid = c.currentMediaItem?.mediaId ?: return@NowPlayingScreen
+              scope.launch {
+                repo.setEpisodeCompleted(guid, true)
+
+                if (DownloadPrefs.autoDeleteOnPlayed(context, default = false)) {
+                  // Auto-delete local file when marked played.
+                  val ep = repo.getEpisodeByGuid(guid)
+                  if (ep != null) {
+                    val dmSvc = context.getSystemService(DownloadManager::class.java)
+                    if (ep.downloadId != 0L) runCatching { dmSvc?.remove(ep.downloadId) }
+
+                    val local = ep.localFileUri
+                    if (!local.isNullOrBlank()) {
+                      runCatching {
+                        val uri = Uri.parse(local)
+                        context.contentResolver.delete(uri, null, null)
+                      }
+                    }
+
+                    repo.clearEpisodeDownload(ep.guid)
+                    repo.setEpisodeDownloadStatus(ep.guid, null, null)
+                  }
+                }
+              }
+            },
             onSetSpeed = { speed ->
               val c = controller ?: return@NowPlayingScreen
               c.setPlaybackParameters(PlaybackParameters(speed, playbackPitch))
