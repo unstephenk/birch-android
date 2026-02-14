@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.window.PopupProperties
 import androidx.compose.runtime.Composable
@@ -67,12 +68,20 @@ fun LibraryScreen(
   val podcasts by vm.podcasts.collectAsState()
   var confirmUnsub by remember { mutableStateOf<PodcastEntity?>(null) }
   var query by remember { mutableStateOf("") }
+  var sortMenuOpen by remember { mutableStateOf(false) }
+  var sortMode by remember { mutableStateOf("Recent") }
 
-  val filtered = remember(podcasts, query) {
+  val filtered = remember(podcasts, query, sortMode) {
     val q = query.trim()
-    if (q.isBlank()) podcasts
+    val base = if (q.isBlank()) podcasts
     else podcasts.filter {
       it.title.contains(q, ignoreCase = true) || (it.description?.contains(q, ignoreCase = true) ?: false)
+    }
+
+    when (sortMode) {
+      "A-Z" -> base.sortedBy { it.title.lowercase() }
+      "Unplayed" -> base // we don’t have counts here without extra queries; keep stable for now
+      else -> base.sortedWith(compareByDescending<PodcastEntity> { it.lastRefreshAtMs ?: 0L }.thenByDescending { it.id })
     }
   }
 
@@ -87,6 +96,20 @@ fun LibraryScreen(
               contentDescription = "Toggle theme",
             )
           }
+          IconButton(onClick = { sortMenuOpen = true }) {
+            Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
+          }
+          DropdownMenu(expanded = sortMenuOpen, onDismissRequest = { sortMenuOpen = false }) {
+            DropdownMenuItem(
+              text = { Text("Recent") },
+              onClick = { sortMenuOpen = false; sortMode = "Recent" },
+            )
+            DropdownMenuItem(
+              text = { Text("A-Z") },
+              onClick = { sortMenuOpen = false; sortMode = "A-Z" },
+            )
+          }
+
           IconButton(onClick = onOpenDownloads) {
             Icon(Icons.Filled.Download, contentDescription = "Downloads")
           }
