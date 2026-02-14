@@ -114,6 +114,11 @@ esac
 
 CLASSPATH=$APP_HOME/gradle/wrapper/gradle-wrapper.jar
 
+# Container-friendly default: if JAVA_HOME isn't set, prefer the repo-local JDK at $APP_HOME/.jdk
+if [ -z "$JAVA_HOME" ] && [ -x "$APP_HOME/.jdk/bin/java" ] ; then
+    JAVA_HOME="$APP_HOME/.jdk"
+    export JAVA_HOME
+fi
 
 # Determine the Java command to use to start the JVM.
 if [ -n "$JAVA_HOME" ] ; then
