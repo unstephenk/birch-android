@@ -156,6 +156,7 @@ fun DownloadsScreen(
           DownloadRow(
             ep = ep,
             status = "Failed",
+            detail = ep.downloadError?.let { "Reason: $it" },
             onClick = { onRetry(ep) },
             onRemove = {
               scope.launch {
@@ -191,6 +192,7 @@ private fun EmptyRow(text: String) {
 private fun DownloadRow(
   ep: EpisodeEntity,
   status: String,
+  detail: String? = null,
   onClick: () -> Unit,
   onRemove: () -> Unit,
 ) {
@@ -205,6 +207,9 @@ private fun DownloadRow(
       Column(modifier = Modifier.weight(1f)) {
         Text(ep.title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleMedium)
         Text(status, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (!detail.isNullOrBlank()) {
+          Text(detail, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
       }
     }
 

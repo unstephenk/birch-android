@@ -425,7 +425,7 @@ private fun BirchApp() {
           for (i in 0 until metadata.length()) {
             val e = metadata[i]
             if (e is ChapterFrame) {
-              val t = e.chapterId?.takeIf { it.isNotBlank() } ?: "Chapter"
+              val t = e.chapterId.takeIf { it.isNotBlank() } ?: "Chapter"
               add(ChapterUi(title = t, startMs = e.startTimeMs.toLong()))
             }
           }
