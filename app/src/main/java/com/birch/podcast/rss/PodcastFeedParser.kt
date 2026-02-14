@@ -43,6 +43,8 @@ object PodcastFeedParser {
 
     var channelTitle: String? = null
     var channelDesc: String? = null
+    var channelImageUrl: String? = null
+    var inChannelImage = false
 
     var itemTitle: String? = null
     var itemPubDate: String? = null
@@ -130,6 +132,27 @@ object PodcastFeedParser {
           } else {
             // channel-level
             when {
+              name.equals("image", ignoreCase = true) -> {
+                inChannelImage = true
+              }
+              (name.equals("itunes:image", ignoreCase = true) || name.equals("image", ignoreCase = true)) && channelImageUrl.isNullOrBlank() -> {
+                // Many feeds use <itunes:image href="..."/>
+                val href = run {
+                  // Try common attribute names / namespaces.
+                  parser.getAttributeValue(null, "href")
+                    ?: parser.getAttributeValue(null, "url")
+                    ?: parser.getAttributeValue("http://www.itunes.com/dtds/podcast-1.0.dtd", "href")
+                    ?: parser.getAttributeValue("http://www.itunes.com/dtds/podcast-1.0.dtd", "url")
+                    ?: (0 until parser.attributeCount)
+                      .firstOrNull { i -> parser.getAttributeName(i).equals("href", ignoreCase = true) }
+                      ?.let { i -> parser.getAttributeValue(i) }
+                }
+                if (!href.isNullOrBlank()) channelImageUrl = href
+              }
+              inChannelImage && name.equals("url", ignoreCase = true) && channelImageUrl.isNullOrBlank() -> {
+                // RSS <image><url>...</url></image>
+                channelImageUrl = readText()
+              }
               name.equals("title", ignoreCase = true) -> if (channelTitle == null) channelTitle = readText()
               name.equals("description", ignoreCase = true) -> if (channelDesc == null) channelDesc = readText()
             }
@@ -140,6 +163,8 @@ object PodcastFeedParser {
           if (name.equals("item", ignoreCase = true)) {
             flushItem()
             inItem = false
+          } else if (name.equals("image", ignoreCase = true)) {
+            inChannelImage = false
           }
         }
       }
@@ -150,6 +175,7 @@ object PodcastFeedParser {
       feedUrl = feedUrl,
       title = channelTitle?.trim().takeIf { !it.isNullOrBlank() } ?: feedUrl,
       description = channelDesc?.trim(),
+      imageUrl = channelImageUrl?.trim(),
     )
 
     return ParsedFeed(podcast = podcast, episodes = out)

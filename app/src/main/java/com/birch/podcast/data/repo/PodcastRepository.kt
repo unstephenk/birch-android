@@ -79,6 +79,14 @@ class PodcastRepository(
     }
 
     db.episodes().insertAll(episodes)
+
+    // Update channel metadata in case it changed (especially artwork).
+    db.podcasts().updateMetadata(
+      id = podcast.id,
+      title = parsed.podcast.title,
+      description = parsed.podcast.description,
+      imageUrl = parsed.podcast.imageUrl,
+    )
     db.podcasts().setLastRefresh(podcast.id, System.currentTimeMillis())
 
     if (autoQueueNewestUnplayed) {

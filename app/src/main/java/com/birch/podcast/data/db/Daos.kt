@@ -21,6 +21,9 @@ interface PodcastDao {
   @Query("UPDATE podcasts SET lastRefreshAtMs = :ts WHERE id = :id")
   suspend fun setLastRefresh(id: Long, ts: Long)
 
+  @Query("UPDATE podcasts SET title = :title, description = :description, imageUrl = :imageUrl WHERE id = :id")
+  suspend fun updateMetadata(id: Long, title: String, description: String?, imageUrl: String?)
+
   @Query("DELETE FROM podcasts WHERE id = :id")
   suspend fun delete(id: Long)
 }
