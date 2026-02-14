@@ -75,7 +75,7 @@ fun QueueScreen(
       AlertDialog(
         onDismissRequest = { confirmClear = false },
         title = { Text("Clear queue?") },
-        text = { Text("This will remove all items from the queue.") },
+        text = { Text("This clears upcoming items in the queue. Current playback will continue.") },
         confirmButton = {
           TextButton(
             onClick = {

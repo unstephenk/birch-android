@@ -358,6 +358,14 @@ private fun EpisodeListRow(
       val downloaded = !ep.localFileUri.isNullOrBlank()
       val downloading = !downloaded && ep.downloadId != 0L
 
+      // Quick actions
+      IconButton(onClick = onPlayNext) {
+        Text("Next", style = MaterialTheme.typography.labelLarge)
+      }
+      IconButton(onClick = onPlayLast) {
+        Text("Last", style = MaterialTheme.typography.labelLarge)
+      }
+
       // Row menu (anchor to the 3-dots button)
       androidx.compose.foundation.layout.Box(
         modifier = Modifier.wrapContentSize(Alignment.TopEnd)
