@@ -231,6 +231,27 @@ private fun BirchApp() {
     val wifiOnly = DownloadPrefs.wifiOnly(context, default = false)
     val chargingOnly = DownloadPrefs.chargingOnly(context, default = false)
 
+    if (DownloadPrefs.showNetworkWarnings(context, default = true)) {
+      // Best-effort warnings for common "why isn't it downloading" cases.
+      if (wifiOnly) {
+        val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
+        val caps = cm?.getNetworkCapabilities(cm.activeNetwork)
+        val onWifi = caps?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_WIFI) == true
+        if (!onWifi) {
+          Toast.makeText(context, "Wi‑Fi only is enabled (not currently on Wi‑Fi)", Toast.LENGTH_SHORT).show()
+        }
+      }
+
+      if (chargingOnly) {
+        val bm = context.getSystemService(android.os.BatteryManager::class.java)
+        val status = bm?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_STATUS)
+        val charging = status == android.os.BatteryManager.BATTERY_STATUS_CHARGING || status == android.os.BatteryManager.BATTERY_STATUS_FULL
+        if (!charging) {
+          Toast.makeText(context, "Charging-only is enabled (device not charging)", Toast.LENGTH_SHORT).show()
+        }
+      }
+    }
+
     val baseReq = DownloadManager.Request(Uri.parse(audioUrl))
       .setTitle(title)
       .setAllowedOverRoaming(true)

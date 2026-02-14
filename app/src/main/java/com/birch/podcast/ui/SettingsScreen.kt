@@ -43,6 +43,7 @@ fun SettingsScreen(
   var showNotif by remember { mutableStateOf(DownloadPrefs.showSystemNotification(context, default = true)) }
   var autoDeleteOnPlayed by remember { mutableStateOf(DownloadPrefs.autoDeleteOnPlayed(context, default = false)) }
   var autoDeleteDaysText by remember { mutableStateOf(DownloadPrefs.autoDeleteDays(context, default = 0).toString()) }
+  var showNetworkWarnings by remember { mutableStateOf(DownloadPrefs.showNetworkWarnings(context, default = true)) }
 
   fun setAutoDeleteDaysSafe(txt: String) {
     autoDeleteDaysText = txt
@@ -99,6 +100,16 @@ fun SettingsScreen(
         onCheckedChange = {
           showNotif = it
           DownloadPrefs.setShowSystemNotification(context, it)
+        }
+      )
+
+      SettingToggleRow(
+        title = "Show network warnings",
+        subtitle = "Warn when Wi‑Fi-only / charging-only would block downloads",
+        checked = showNetworkWarnings,
+        onCheckedChange = {
+          showNetworkWarnings = it
+          DownloadPrefs.setShowNetworkWarnings(context, it)
         }
       )
 
