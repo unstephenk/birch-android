@@ -1,7 +1,9 @@
 package com.birch.podcast.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,10 +19,13 @@ import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -137,20 +142,37 @@ fun QueueScreen(
               state = dismissState,
               enableDismissFromStartToEnd = false,
               enableDismissFromEndToStart = true,
-              backgroundContent = { /* no-op for now */ },
+              backgroundContent = {
+                Box(
+                  modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .padding(horizontal = 16.dp),
+                  contentAlignment = Alignment.CenterEnd,
+                ) {
+                  Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                  )
+                }
+              },
             ) {
-              QueueRow(
-                item = item,
-                canMoveUp = idx > 0,
-                canMoveDown = idx != -1 && idx < queue.lastIndex,
-                dragHandleModifier = Modifier.detectReorderAfterLongPress(reorderState),
-                onMoveUp = { vm.moveUp(item.id) },
-                onMoveDown = { vm.moveDown(item.id) },
-                onMoveTop = { vm.moveToTop(item.id) },
-                onMoveBottom = { vm.moveToBottom(item.id) },
-                onPlayNow = { onPlayNow(item) },
-                onRemove = { vm.remove(item.id) },
-              )
+              Column {
+                QueueRow(
+                  item = item,
+                  canMoveUp = idx > 0,
+                  canMoveDown = idx != -1 && idx < queue.lastIndex,
+                  dragHandleModifier = Modifier.detectReorderAfterLongPress(reorderState),
+                  onMoveUp = { vm.moveUp(item.id) },
+                  onMoveDown = { vm.moveDown(item.id) },
+                  onMoveTop = { vm.moveToTop(item.id) },
+                  onMoveBottom = { vm.moveToBottom(item.id) },
+                  onPlayNow = { onPlayNow(item) },
+                  onRemove = { vm.remove(item.id) },
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+              }
             }
           }
         }
@@ -178,17 +200,31 @@ private fun QueueRow(
     modifier = Modifier
       .fillMaxWidth()
       .clickable(onClick = onPlayNow)
-      .padding(horizontal = 12.dp, vertical = 10.dp),
+      .padding(horizontal = 12.dp, vertical = 12.dp),
     horizontalArrangement = Arrangement.SpaceBetween,
     verticalAlignment = Alignment.CenterVertically
   ) {
-    Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-      Text(item.title, style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
-      Text("Up next", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(modifier = Modifier.weight(1f).padding(end = 10.dp)) {
+      Text(
+        item.title,
+        style = MaterialTheme.typography.titleMedium,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+      )
+      Text(
+        "Up next",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
     }
 
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-      Icon(Icons.Filled.DragHandle, contentDescription = "Reorder", modifier = dragHandleModifier)
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+      Icon(
+        Icons.Filled.DragHandle,
+        contentDescription = "Reorder",
+        modifier = dragHandleModifier,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
 
       IconButton(onClick = { menuOpen = true }) {
         Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
@@ -220,8 +256,8 @@ private fun QueueRow(
         )
       }
 
-      IconButton(onClick = onPlayNow) {
-        Text("Play", style = MaterialTheme.typography.labelLarge)
+      FilledTonalIconButton(onClick = onPlayNow) {
+        Icon(Icons.Filled.PlayArrow, contentDescription = "Play")
       }
     }
   }
