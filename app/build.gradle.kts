@@ -53,6 +53,8 @@ dependencies {
 
   // Persist settings (theme)
   implementation("androidx.datastore:datastore-preferences:1.1.1")
+  // Some devices/emulators have crashed without this being present explicitly.
+  implementation("androidx.startup:startup-runtime:1.1.1")
 
   // Background work
   implementation("androidx.work:work-runtime-ktx:2.9.0")
