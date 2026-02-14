@@ -29,3 +29,9 @@ fun fmtMaybeSize(bytes: Long?): String? {
   if (bytes == null || bytes <= 0L) return null
   return fmtBytes(bytes)
 }
+
+fun fmtRemainingMs(durationMs: Long, positionMs: Long): String? {
+  if (durationMs <= 0L) return null
+  val remSec = ((durationMs - positionMs).coerceAtLeast(0L)) / 1000L
+  return fmtEta(remSec)
+}

@@ -83,6 +83,14 @@ fun DownloadsScreen(
               },
             )
             DropdownMenuItem(
+              text = { Text("Retry all failed") },
+              enabled = failed.isNotEmpty(),
+              onClick = {
+                menuOpen = false
+                failed.forEach { onRetry(it) }
+              },
+            )
+            DropdownMenuItem(
               text = { Text("Clear all failed") },
               enabled = failed.isNotEmpty(),
               onClick = {
@@ -103,9 +111,17 @@ fun DownloadsScreen(
         item { EmptyRow("No active downloads") }
       } else {
         items(downloading, key = { it.id }) { ep ->
+          val size = fmtMaybeSize(ep.enclosureLengthBytes)
+          val rem = fmtRemainingMs(ep.durationMs, ep.lastPositionMs)
+          val detail = listOfNotNull(
+            size?.let { "Size: $it" },
+            rem?.let { "Remaining: $it" },
+          ).joinToString(" • ").ifBlank { null }
+
           DownloadRow(
             ep = ep,
             status = "Downloading",
+            detail = detail,
             onClick = { onPlay(ep) },
             onRemove = {
               scope.launch {
@@ -125,9 +141,17 @@ fun DownloadsScreen(
         item { EmptyRow("No saved episodes") }
       } else {
         items(saved, key = { it.id }) { ep ->
+          val size = fmtMaybeSize(ep.enclosureLengthBytes)
+          val rem = fmtRemainingMs(ep.durationMs, ep.lastPositionMs)
+          val detail = listOfNotNull(
+            size?.let { "Size: $it" },
+            rem?.let { "Remaining: $it" },
+          ).joinToString(" • ").ifBlank { null }
+
           DownloadRow(
             ep = ep,
             status = "Saved",
+            detail = detail,
             onClick = { onPlay(ep) },
             onRemove = {
               val local = ep.localFileUri
@@ -153,10 +177,19 @@ fun DownloadsScreen(
         item { EmptyRow("No failed downloads") }
       } else {
         items(failed, key = { it.id }) { ep ->
+          val size = fmtMaybeSize(ep.enclosureLengthBytes)
+          val rem = fmtRemainingMs(ep.durationMs, ep.lastPositionMs)
+          val d1 = listOfNotNull(
+            size?.let { "Size: $it" },
+            rem?.let { "Remaining: $it" },
+          ).joinToString(" • ").ifBlank { null }
+          val d2 = ep.downloadError?.let { "Reason: $it" }
+          val detail = listOfNotNull(d1, d2).joinToString("\n").ifBlank { null }
+
           DownloadRow(
             ep = ep,
             status = "Failed",
-            detail = ep.downloadError?.let { "Reason: $it" },
+            detail = detail,
             onClick = { onRetry(ep) },
             onRemove = {
               scope.launch {
