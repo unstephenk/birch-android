@@ -1,5 +1,6 @@
 package com.birch.podcast.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -24,6 +26,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -31,6 +35,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.birch.podcast.downloads.DownloadPrefs
 import com.birch.podcast.playback.PlaybackPrefs
+import com.birch.podcast.theme.ThemeMode
+import com.birch.podcast.theme.ThemePrefs
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,6 +45,11 @@ fun SettingsScreen(
   onBack: () -> Unit,
 ) {
   val context = LocalContext.current
+
+  // Theme
+  val themePrefs = remember { ThemePrefs(context) }
+  val themeMode = themePrefs.themeMode.collectAsState(initial = ThemeMode.SYSTEM).value
+  val scope = rememberCoroutineScope()
 
   var wifiOnly by remember { mutableStateOf(DownloadPrefs.wifiOnly(context, default = false)) }
   var chargingOnly by remember { mutableStateOf(DownloadPrefs.chargingOnly(context, default = false)) }
@@ -88,6 +100,24 @@ fun SettingsScreen(
       modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+      Text("Appearance", style = MaterialTheme.typography.titleMedium)
+
+      ThemeModeRow(
+        title = "Follow system",
+        selected = themeMode == ThemeMode.SYSTEM,
+        onClick = { scope.launch { themePrefs.setThemeMode(ThemeMode.SYSTEM) } },
+      )
+      ThemeModeRow(
+        title = "Light",
+        selected = themeMode == ThemeMode.LIGHT,
+        onClick = { scope.launch { themePrefs.setThemeMode(ThemeMode.LIGHT) } },
+      )
+      ThemeModeRow(
+        title = "Dark",
+        selected = themeMode == ThemeMode.DARK,
+        onClick = { scope.launch { themePrefs.setThemeMode(ThemeMode.DARK) } },
+      )
+
       Text("Playback", style = MaterialTheme.typography.titleMedium)
 
       OutlinedTextField(
@@ -170,6 +200,22 @@ fun SettingsScreen(
         // keyboardOptions omitted
       )
     }
+  }
+}
+
+@Composable
+private fun ThemeModeRow(
+  title: String,
+  selected: Boolean,
+  onClick: () -> Unit,
+) {
+  Row(
+    modifier = Modifier.fillMaxWidth().clickable { onClick() },
+    horizontalArrangement = Arrangement.SpaceBetween,
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Text(title, style = MaterialTheme.typography.bodyLarge)
+    RadioButton(selected = selected, onClick = onClick)
   }
 }
 

@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -102,8 +103,12 @@ private fun BirchApp() {
 
   // Theme
   val themePrefs = remember { ThemePrefs(context) }
-  val storedDark = themePrefs.darkTheme.collectAsState(initial = true).value
-  val dark = storedDark ?: true
+  val mode = themePrefs.themeMode.collectAsState(initial = com.birch.podcast.theme.ThemeMode.SYSTEM).value
+  val dark = when (mode) {
+    com.birch.podcast.theme.ThemeMode.DARK -> true
+    com.birch.podcast.theme.ThemeMode.LIGHT -> false
+    com.birch.podcast.theme.ThemeMode.SYSTEM -> isSystemInDarkTheme()
+  }
 
 
   // DB + repo
@@ -676,7 +681,14 @@ private fun BirchApp() {
             vm = vm,
             darkTheme = dark,
             onToggleTheme = {
-              scope.launch { themePrefs.setDarkTheme(!dark) }
+              scope.launch {
+                val next = when (mode) {
+                  com.birch.podcast.theme.ThemeMode.SYSTEM -> com.birch.podcast.theme.ThemeMode.DARK
+                  com.birch.podcast.theme.ThemeMode.DARK -> com.birch.podcast.theme.ThemeMode.LIGHT
+                  com.birch.podcast.theme.ThemeMode.LIGHT -> com.birch.podcast.theme.ThemeMode.DARK
+                }
+                themePrefs.setThemeMode(next)
+              }
             },
             onAdd = { nav.navigate("add") },
             onOpenDownloads = { nav.navigate("downloads") },
