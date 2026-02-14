@@ -16,6 +16,8 @@ object PlaybackPrefs {
   private const val KEY_PITCH_PODCAST_PREFIX = "pitch_podcast_"
   private const val KEY_TRIM_INTRO_MS_PREFIX = "trim_intro_ms_"
   private const val KEY_TRIM_OUTRO_MS_PREFIX = "trim_outro_ms_"
+  private const val KEY_SKIP_BACK_SEC = "skip_back_sec"
+  private const val KEY_SKIP_FORWARD_SEC = "skip_forward_sec"
 
   fun getSpeed(context: Context, default: Float = 1.0f): Float {
     val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -95,5 +97,25 @@ object PlaybackPrefs {
   fun setTrimOutroMs(context: Context, podcastId: Long, ms: Long) {
     val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     p.edit().putLong(KEY_TRIM_OUTRO_MS_PREFIX + podcastId, ms.coerceAtLeast(0L)).apply()
+  }
+
+  fun getSkipBackSec(context: Context, default: Int = 15): Int {
+    val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    return p.getInt(KEY_SKIP_BACK_SEC, default).coerceIn(5, 300)
+  }
+
+  fun setSkipBackSec(context: Context, sec: Int) {
+    val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    p.edit().putInt(KEY_SKIP_BACK_SEC, sec.coerceIn(5, 300)).apply()
+  }
+
+  fun getSkipForwardSec(context: Context, default: Int = 30): Int {
+    val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    return p.getInt(KEY_SKIP_FORWARD_SEC, default).coerceIn(5, 600)
+  }
+
+  fun setSkipForwardSec(context: Context, sec: Int) {
+    val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    p.edit().putInt(KEY_SKIP_FORWARD_SEC, sec.coerceIn(5, 600)).apply()
   }
 }

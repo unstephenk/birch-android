@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.LocalContext
 // (no keyboard options; keep dependencies minimal)
 import androidx.compose.ui.unit.dp
 import com.birch.podcast.downloads.DownloadPrefs
+import com.birch.podcast.playback.PlaybackPrefs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +45,21 @@ fun SettingsScreen(
   var autoDeleteOnPlayed by remember { mutableStateOf(DownloadPrefs.autoDeleteOnPlayed(context, default = false)) }
   var autoDeleteDaysText by remember { mutableStateOf(DownloadPrefs.autoDeleteDays(context, default = 0).toString()) }
   var showNetworkWarnings by remember { mutableStateOf(DownloadPrefs.showNetworkWarnings(context, default = true)) }
+
+  var skipBackSecText by remember { mutableStateOf(PlaybackPrefs.getSkipBackSec(context).toString()) }
+  var skipForwardSecText by remember { mutableStateOf(PlaybackPrefs.getSkipForwardSec(context).toString()) }
+
+  fun setSkipBackSafe(txt: String) {
+    skipBackSecText = txt
+    val n = txt.toIntOrNull() ?: return
+    PlaybackPrefs.setSkipBackSec(context, n)
+  }
+
+  fun setSkipForwardSafe(txt: String) {
+    skipForwardSecText = txt
+    val n = txt.toIntOrNull() ?: return
+    PlaybackPrefs.setSkipForwardSec(context, n)
+  }
 
   fun setAutoDeleteDaysSafe(txt: String) {
     autoDeleteDaysText = txt
@@ -72,6 +88,26 @@ fun SettingsScreen(
       modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
       verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+      Text("Playback", style = MaterialTheme.typography.titleMedium)
+
+      OutlinedTextField(
+        value = skipBackSecText,
+        onValueChange = { setSkipBackSafe(it.filter { c -> c.isDigit() }) },
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text("Skip back (seconds)") },
+        supportingText = { Text("Common: 10 / 15 / 30") },
+        singleLine = true,
+      )
+
+      OutlinedTextField(
+        value = skipForwardSecText,
+        onValueChange = { setSkipForwardSafe(it.filter { c -> c.isDigit() }) },
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text("Skip forward (seconds)") },
+        supportingText = { Text("Common: 30 / 45 / 60") },
+        singleLine = true,
+      )
+
       Text("Downloads", style = MaterialTheme.typography.titleMedium)
 
       SettingToggleRow(

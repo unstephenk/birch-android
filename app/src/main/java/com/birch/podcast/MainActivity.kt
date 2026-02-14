@@ -653,11 +653,13 @@ private fun BirchApp() {
             },
             onRewind15 = {
               val c = controller ?: return@MiniPlayerBar
-              c.seekTo((c.currentPosition - 15_000).coerceAtLeast(0))
+              val sec = PlaybackPrefs.getSkipBackSec(context)
+              c.seekTo((c.currentPosition - (sec * 1000L)).coerceAtLeast(0))
             },
             onForward30 = {
               val c = controller ?: return@MiniPlayerBar
-              c.seekTo(c.currentPosition + 30_000)
+              val sec = PlaybackPrefs.getSkipForwardSec(context)
+              c.seekTo(c.currentPosition + (sec * 1000L))
             }
           )
         }
@@ -829,11 +831,13 @@ private fun BirchApp() {
             },
             onRewind15 = {
               val c = controller ?: return@NowPlayingScreen
-              c.seekTo((c.currentPosition - 15_000).coerceAtLeast(0))
+              val sec = PlaybackPrefs.getSkipBackSec(context)
+              c.seekTo((c.currentPosition - (sec * 1000L)).coerceAtLeast(0))
             },
             onForward30 = {
               val c = controller ?: return@NowPlayingScreen
-              c.seekTo(c.currentPosition + 30_000)
+              val sec = PlaybackPrefs.getSkipForwardSec(context)
+              c.seekTo(c.currentPosition + (sec * 1000L))
             },
             onPlayFromBeginning = {
               val c = controller ?: return@NowPlayingScreen

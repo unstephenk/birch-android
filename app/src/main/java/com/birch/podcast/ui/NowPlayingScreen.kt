@@ -211,7 +211,7 @@ fun NowPlayingScreen(
         verticalAlignment = Alignment.CenterVertically
       ) {
         IconButton(onClick = onRewind15) {
-          Icon(Icons.Filled.FastRewind, contentDescription = "Rewind 15")
+          Icon(Icons.Filled.FastRewind, contentDescription = "Rewind")
         }
         IconButton(onClick = onPlayPause) {
           Icon(
@@ -220,7 +220,7 @@ fun NowPlayingScreen(
           )
         }
         IconButton(onClick = onForward30) {
-          Icon(Icons.Filled.FastForward, contentDescription = "Forward 30")
+          Icon(Icons.Filled.FastForward, contentDescription = "Forward")
         }
       }
 
