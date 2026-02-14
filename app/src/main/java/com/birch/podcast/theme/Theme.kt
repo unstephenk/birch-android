@@ -18,6 +18,7 @@ private val DarkColors = darkColorScheme(
   onSecondary = pcOnCoral,
   onBackground = pcOnDark,
   onSurface = pcOnDark,
+  onSurfaceVariant = pcOnDarkMuted,
 )
 
 private val LightColors = lightColorScheme(
@@ -31,6 +32,7 @@ private val LightColors = lightColorScheme(
   onSecondary = pcOnCoral,
   onBackground = pcOnLight,
   onSurface = pcOnLight,
+  onSurfaceVariant = pcOnLightMuted,
 )
 
 @Composable
@@ -41,6 +43,8 @@ fun BirchTheme(
   val useDark = darkTheme ?: isSystemInDarkTheme()
   MaterialTheme(
     colorScheme = if (useDark) DarkColors else LightColors,
+    typography = PocketTypography,
+    shapes = PocketShapes,
     content = content
   )
 }
