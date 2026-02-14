@@ -1,5 +1,6 @@
 package com.birch.podcast.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -268,7 +271,24 @@ fun AddFeedScreen(
       )
     }
   ) { padding ->
-    Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+    val scroll = rememberScrollState()
+
+    val suggestions = listOf(
+      "Alex Jones (Infowars)" to "https://rss.infowars.com/Alex.xml",
+      "BBC Global News Podcast" to "https://podcasts.files.bbci.co.uk/p02nq0lx.rss",
+      "NPR: Up First" to "https://feeds.npr.org/510318/podcast.xml",
+      "TED Talks Daily" to "https://feeds.feedburner.com/TEDTalks_audio",
+      "The Economist: The Intelligence" to "https://rss.acast.com/theintelligence",
+      "The Vergecast" to "https://feeds.megaphone.fm/vergecast",
+    )
+
+    Column(
+      modifier = Modifier
+        .fillMaxSize()
+        .padding(padding)
+        .padding(16.dp)
+        .verticalScroll(scroll)
+    ) {
       Text("Paste an RSS feed URL")
       Spacer(Modifier.padding(6.dp))
       OutlinedTextField(
@@ -278,10 +298,32 @@ fun AddFeedScreen(
         modifier = Modifier.fillMaxWidth(),
         placeholder = { Text("https://example.com/feed.xml") }
       )
+
+      Spacer(Modifier.padding(12.dp))
+      Text("Popular feeds (tap to fill)", style = MaterialTheme.typography.titleSmall)
+      Spacer(Modifier.padding(6.dp))
+
+      suggestions.forEach { (name, link) ->
+        Row(
+          modifier = Modifier
+            .fillMaxWidth()
+            .clickable { url = link }
+            .padding(vertical = 8.dp),
+          horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+          Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
+            Text(name, style = MaterialTheme.typography.bodyMedium)
+            Text(link, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+          }
+          Text("Use", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        }
+      }
+
       if (err != null) {
         Spacer(Modifier.padding(6.dp))
         Text("Error: $err", color = MaterialTheme.colorScheme.error)
       }
+
       Spacer(Modifier.padding(12.dp))
       Button(
         onClick = { vm.add(url) { onAdded(it) } },
@@ -293,8 +335,7 @@ fun AddFeedScreen(
         Text("Add")
       }
 
-      Spacer(Modifier.padding(12.dp))
-      Text("Try: https://rss.infowars.com/Alex.xml", style = MaterialTheme.typography.bodySmall)
+      Spacer(Modifier.padding(18.dp))
     }
   }
 }
