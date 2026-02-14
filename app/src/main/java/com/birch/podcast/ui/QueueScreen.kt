@@ -10,12 +10,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ClearAll
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.DragHandle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -30,6 +30,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberSwipeToDismissBoxState
+import org.burnoutcrew.reorderable.ReorderableItem
+import org.burnoutcrew.reorderable.detectReorderAfterLongPress
+import org.burnoutcrew.reorderable.rememberReorderableLazyListState
+import org.burnoutcrew.reorderable.reorderable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -93,38 +97,50 @@ fun QueueScreen(
         Text("Queue is empty")
       }
     } else {
-      LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-        items(queue, key = { it.id }) { item ->
-          val idx = queue.indexOfFirst { it.id == item.id }
+      val reorderState = rememberReorderableLazyListState(
+        onMove = { from, to -> vm.moveToIndex(from.index, to.index) }
+      )
 
-          val dismissState = rememberSwipeToDismissBoxState(
-            confirmValueChange = { v ->
-              if (v != androidx.compose.material3.SwipeToDismissBoxValue.Settled) {
-                vm.remove(item.id)
-                true
-              } else {
-                false
+      LazyColumn(
+        state = reorderState.listState,
+        modifier = Modifier
+          .fillMaxSize()
+          .padding(padding)
+          .reorderable(reorderState)
+          .detectReorderAfterLongPress(reorderState)
+      ) {
+        itemsIndexed(queue, key = { _, it -> it.id }) { idx, item ->
+          ReorderableItem(reorderState, key = item.id) {
+            val dismissState = rememberSwipeToDismissBoxState(
+              confirmValueChange = { v ->
+                if (v != androidx.compose.material3.SwipeToDismissBoxValue.Settled) {
+                  vm.remove(item.id)
+                  true
+                } else {
+                  false
+                }
               }
-            }
-          )
-
-          SwipeToDismissBox(
-            state = dismissState,
-            enableDismissFromStartToEnd = false,
-            enableDismissFromEndToStart = true,
-            backgroundContent = { /* no-op for now */ },
-          ) {
-            QueueRow(
-              item = item,
-              canMoveUp = idx > 0,
-              canMoveDown = idx != -1 && idx < queue.lastIndex,
-              onMoveUp = { vm.moveUp(item.id) },
-              onMoveDown = { vm.moveDown(item.id) },
-              onMoveTop = { vm.moveToTop(item.id) },
-              onMoveBottom = { vm.moveToBottom(item.id) },
-              onPlayNow = { onPlayNow(item) },
-              onRemove = { vm.remove(item.id) },
             )
+
+            SwipeToDismissBox(
+              state = dismissState,
+              enableDismissFromStartToEnd = false,
+              enableDismissFromEndToStart = true,
+              backgroundContent = { /* no-op for now */ },
+            ) {
+              QueueRow(
+                item = item,
+                canMoveUp = idx > 0,
+                canMoveDown = idx != -1 && idx < queue.lastIndex,
+                dragHandleModifier = Modifier.detectReorderAfterLongPress(reorderState),
+                onMoveUp = { vm.moveUp(item.id) },
+                onMoveDown = { vm.moveDown(item.id) },
+                onMoveTop = { vm.moveToTop(item.id) },
+                onMoveBottom = { vm.moveToBottom(item.id) },
+                onPlayNow = { onPlayNow(item) },
+                onRemove = { vm.remove(item.id) },
+              )
+            }
           }
         }
       }
@@ -137,6 +153,7 @@ private fun QueueRow(
   item: QueueItemEntity,
   canMoveUp: Boolean,
   canMoveDown: Boolean,
+  dragHandleModifier: Modifier,
   onMoveUp: () -> Unit,
   onMoveDown: () -> Unit,
   onMoveTop: () -> Unit,
@@ -160,6 +177,8 @@ private fun QueueRow(
     }
 
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+      Icon(Icons.Filled.DragHandle, contentDescription = "Reorder", modifier = dragHandleModifier)
+
       IconButton(onClick = { menuOpen = true }) {
         Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
       }

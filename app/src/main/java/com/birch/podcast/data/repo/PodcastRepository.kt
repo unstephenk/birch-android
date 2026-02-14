@@ -249,6 +249,23 @@ class PodcastRepository(
     db.queue().updatePosition(a.id, b.position)
   }
 
+  suspend fun moveQueueItemToIndex(fromIndex: Int, toIndex: Int) {
+    val items = db.queue().list()
+    if (items.isEmpty()) return
+
+    val from = fromIndex.coerceIn(0, items.lastIndex)
+    val to = toIndex.coerceIn(0, items.lastIndex)
+    if (from == to) return
+
+    val reordered = items.toMutableList()
+    val item = reordered.removeAt(from)
+    reordered.add(to, item)
+
+    // Avoid unique index collisions on position.
+    reordered.forEachIndexed { i, it -> db.queue().updatePosition(it.id, -(i + 1).toLong()) }
+    reordered.forEachIndexed { i, it -> db.queue().updatePosition(it.id, (i + 1).toLong()) }
+  }
+
   private suspend fun fetchAndParse(feedUrl: String): PodcastFeedParser.ParsedFeed = withContext(Dispatchers.IO) {
     val req = Request.Builder()
       .url(feedUrl)

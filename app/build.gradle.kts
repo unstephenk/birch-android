@@ -73,6 +73,9 @@ dependencies {
   implementation("androidx.media3:media3-session:1.3.1")
   implementation("androidx.media3:media3-common:1.3.1")
 
+  // Drag & drop reorder for Compose lists
+  implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
+
   debugImplementation("androidx.compose.ui:ui-tooling")
   debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
