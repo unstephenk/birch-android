@@ -1,12 +1,14 @@
 package com.birch.podcast.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.FastForward
@@ -16,8 +18,13 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -168,45 +175,53 @@ fun NowPlayingScreen(
     }
   ) { padding ->
     Column(
-      modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
-      verticalArrangement = Arrangement.spacedBy(12.dp)
+      modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp, vertical = 12.dp),
+      verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-      Text(
-        text = title ?: "—",
-        style = MaterialTheme.typography.titleLarge,
-        maxLines = 2,
-        overflow = TextOverflow.Ellipsis,
-      )
-      val metaBits = buildList {
-        podcastTitle?.takeIf { it.isNotBlank() }?.let { add(normalizePodcastTitle(it)) }
-        episodeDate?.takeIf { it.isNotBlank() }?.let { add(it) }
-      }
-      if (metaBits.isNotEmpty()) {
+      // Title block
+      Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(
-          metaBits.joinToString(" • "),
-          style = MaterialTheme.typography.labelSmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
+          text = title ?: "—",
+          style = MaterialTheme.typography.titleLarge,
+          maxLines = 2,
+          overflow = TextOverflow.Ellipsis,
         )
-      }
-
-      // Timeline
-      if (durationMs > 0) {
-        val value = (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
-        Slider(
-          value = value,
-          onValueChange = { v -> onSeekTo((v * durationMs.toFloat()).toLong()) },
-          modifier = Modifier.fillMaxWidth()
-        )
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-          Text(fmtMs(positionMs), style = MaterialTheme.typography.labelSmall)
-          Text("-${fmtMs((durationMs - positionMs).coerceAtLeast(0))}", style = MaterialTheme.typography.labelSmall)
-          Text(fmtMs(durationMs), style = MaterialTheme.typography.labelSmall)
+        val metaBits = buildList {
+          podcastTitle?.takeIf { it.isNotBlank() }?.let { add(normalizePodcastTitle(it)) }
+          episodeDate?.takeIf { it.isNotBlank() }?.let { add(it) }
+        }
+        if (metaBits.isNotEmpty()) {
+          Text(
+            metaBits.joinToString(" • "),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
         }
       }
 
-      Spacer(Modifier.padding(4.dp))
+      // Timeline
+      ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+          if (durationMs > 0) {
+            val value = (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
+            Slider(
+              value = value,
+              onValueChange = { v -> onSeekTo((v * durationMs.toFloat()).toLong()) },
+              modifier = Modifier.fillMaxWidth()
+            )
 
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+              Text(fmtMs(positionMs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+              Text("-${fmtMs((durationMs - positionMs).coerceAtLeast(0))}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+              Text(fmtMs(durationMs), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+          } else {
+            Text("—", color = MaterialTheme.colorScheme.onSurfaceVariant)
+          }
+        }
+      }
+
+      // Primary controls
       Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -215,78 +230,88 @@ fun NowPlayingScreen(
         IconButton(onClick = onRewind15) {
           Icon(Icons.Filled.FastRewind, contentDescription = "Rewind")
         }
-        IconButton(onClick = onPlayPause) {
+
+        // Big coral filled play button
+        Button(
+          onClick = onPlayPause,
+          shape = CircleShape,
+          colors = ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+          ),
+          contentPadding = ButtonDefaults.ContentPadding,
+        ) {
           Icon(
             if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            contentDescription = "Play/Pause"
+            contentDescription = "Play/Pause",
           )
         }
+
         IconButton(onClick = onForward30) {
           Icon(Icons.Filled.FastForward, contentDescription = "Forward")
         }
       }
 
-      Spacer(Modifier.padding(4.dp))
+      // Secondary actions
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        FilterChip(
+          selected = false,
+          onClick = onPlayFromBeginning,
+          label = { Text("From start") },
+          leadingIcon = { Icon(Icons.Filled.Replay, contentDescription = null) },
+          colors = FilterChipDefaults.filterChipColors(),
+        )
+        FilterChip(
+          selected = false,
+          onClick = onMarkPlayed,
+          label = { Text("Mark played") },
+          leadingIcon = { Icon(Icons.Filled.Done, contentDescription = null) },
+          colors = FilterChipDefaults.filterChipColors(),
+        )
+      }
 
       Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
       ) {
-        TextButton(onClick = onPlayFromBeginning) {
-          Icon(Icons.Filled.Replay, contentDescription = null)
-          Spacer(Modifier.padding(4.dp))
-          Text("From start")
-        }
-        TextButton(onClick = onMarkPlayed) {
-          Icon(Icons.Filled.Done, contentDescription = null)
-          Spacer(Modifier.padding(4.dp))
-          Text("Mark played")
-        }
+        FilterChip(selected = false, onClick = onPlayNext, label = { Text("Play next") })
+        FilterChip(selected = false, onClick = onPlayLast, label = { Text("Play last") })
       }
 
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
-        TextButton(onClick = onPlayNext) {
-          Text("Play next")
-        }
-        TextButton(onClick = onPlayLast) {
-          Text("Play last")
-        }
-      }
+      // Toggles + trim controls
+      ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+          Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Skip silence", style = MaterialTheme.typography.bodyMedium)
+            Switch(checked = skipSilenceEnabled, onCheckedChange = onToggleSkipSilence)
+          }
+          Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Text("Boost volume", style = MaterialTheme.typography.bodyMedium)
+            Switch(checked = boostVolumeEnabled, onCheckedChange = onToggleBoostVolume)
+          }
 
-      // Toggles
-      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text("Skip silence", style = MaterialTheme.typography.bodyMedium)
-        Switch(checked = skipSilenceEnabled, onCheckedChange = onToggleSkipSilence)
-      }
-      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text("Boost volume", style = MaterialTheme.typography.bodyMedium)
-        Switch(checked = boostVolumeEnabled, onCheckedChange = onToggleBoostVolume)
-      }
+          Text("Trim intro: ${trimIntroSec}s", style = MaterialTheme.typography.bodyMedium)
+          Slider(
+            value = trimIntroSec.toFloat(),
+            onValueChange = { onSetTrimIntroSec(it.toInt()) },
+            valueRange = 0f..120f,
+            steps = 11,
+          )
 
-      // Trim controls (per-podcast)
-      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text("Trim intro: ${trimIntroSec}s", style = MaterialTheme.typography.bodyMedium)
+          Text("Trim outro: ${trimOutroSec}s", style = MaterialTheme.typography.bodyMedium)
+          Slider(
+            value = trimOutroSec.toFloat(),
+            onValueChange = { onSetTrimOutroSec(it.toInt()) },
+            valueRange = 0f..120f,
+            steps = 11,
+          )
+        }
       }
-      Slider(
-        value = trimIntroSec.toFloat(),
-        onValueChange = { onSetTrimIntroSec(it.toInt()) },
-        valueRange = 0f..120f,
-        steps = 11,
-      )
-      Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text("Trim outro: ${trimOutroSec}s", style = MaterialTheme.typography.bodyMedium)
-      }
-      Slider(
-        value = trimOutroSec.toFloat(),
-        onValueChange = { onSetTrimOutroSec(it.toInt()) },
-        valueRange = 0f..120f,
-        steps = 11,
-      )
 
       if (chapters.isNotEmpty()) {
         Spacer(Modifier.padding(4.dp))
