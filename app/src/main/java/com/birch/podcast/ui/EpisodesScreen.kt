@@ -46,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.ui.unit.dp
 import com.birch.podcast.data.db.EpisodeEntity
 import kotlinx.coroutines.launch
@@ -345,27 +346,34 @@ private fun EpisodeListRow(
       val downloaded = !ep.localFileUri.isNullOrBlank()
       val downloading = !downloaded && ep.downloadId != 0L
 
-      // Row menu
-      IconButton(onClick = { rowMenuOpen = true }) {
-        Icon(Icons.Filled.MoreVert, contentDescription = "Episode menu")
-      }
-      DropdownMenu(expanded = rowMenuOpen, onDismissRequest = { rowMenuOpen = false }) {
-        DropdownMenuItem(
-          text = { Text("Play next") },
-          onClick = { rowMenuOpen = false; onPlayNext() },
-        )
-        DropdownMenuItem(
-          text = { Text("Play last") },
-          onClick = { rowMenuOpen = false; onPlayLast() },
-        )
-        DropdownMenuItem(
-          text = { Text("Add to queue") },
-          onClick = { rowMenuOpen = false; onAddToQueue() },
-        )
-        DropdownMenuItem(
-          text = { Text(if (ep.completed == 1) "Mark unplayed" else "Mark played") },
-          onClick = { rowMenuOpen = false; onTogglePlayed() },
-        )
+      // Row menu (anchor to the 3-dots button)
+      androidx.compose.foundation.layout.Box(
+        modifier = Modifier.wrapContentSize(Alignment.TopEnd)
+      ) {
+        IconButton(onClick = { rowMenuOpen = true }) {
+          Icon(Icons.Filled.MoreVert, contentDescription = "Episode menu")
+        }
+        DropdownMenu(
+          expanded = rowMenuOpen,
+          onDismissRequest = { rowMenuOpen = false },
+        ) {
+          DropdownMenuItem(
+            text = { Text("Play next") },
+            onClick = { rowMenuOpen = false; onPlayNext() },
+          )
+          DropdownMenuItem(
+            text = { Text("Play last") },
+            onClick = { rowMenuOpen = false; onPlayLast() },
+          )
+          DropdownMenuItem(
+            text = { Text("Add to queue") },
+            onClick = { rowMenuOpen = false; onAddToQueue() },
+          )
+          DropdownMenuItem(
+            text = { Text(if (ep.completed == 1) "Mark unplayed" else "Mark played") },
+            onClick = { rowMenuOpen = false; onTogglePlayed() },
+          )
+        }
       }
 
       // Download area (fixed width so it doesn't push other buttons around)
