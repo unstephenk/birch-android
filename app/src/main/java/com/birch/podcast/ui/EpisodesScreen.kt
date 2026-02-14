@@ -24,6 +24,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -266,43 +267,46 @@ fun EpisodesScreen(
 
       LazyColumn(modifier = Modifier.fillMaxSize()) {
         items(filtered, key = { it.id }) { ep ->
-          EpisodeListRow(
-            ep = ep,
-            onPlay = { onPlay(ep) },
-            onAddToQueue = {
-              onAddToQueue(ep)
-              scope.launch {
-                snackbarHostState.showSnackbar("Added to queue")
-              }
-            },
-            onPlayNext = {
-              onPlayNext(ep)
-              scope.launch { snackbarHostState.showSnackbar("Added to play next") }
-            },
-            onPlayLast = {
-              onPlayLast(ep)
-              scope.launch { snackbarHostState.showSnackbar("Added to play last") }
-            },
-            onDownload = {
-              onDownload(ep)
-              scope.launch {
-                snackbarHostState.showSnackbar("Download started")
-              }
-            },
-            onRemoveDownload = {
-              onRemoveDownload(ep)
-              scope.launch {
-                snackbarHostState.showSnackbar("Download removed")
-              }
-            },
-            onTogglePlayed = {
-              onTogglePlayed(ep)
-              scope.launch {
-                snackbarHostState.showSnackbar(if (ep.completed == 1) "Marked unplayed" else "Marked played")
-              }
-            },
-            downloadProgress = { downloadProgress(ep) },
-          )
+          Column {
+            EpisodeListRow(
+              ep = ep,
+              onPlay = { onPlay(ep) },
+              onAddToQueue = {
+                onAddToQueue(ep)
+                scope.launch {
+                  snackbarHostState.showSnackbar("Added to queue")
+                }
+              },
+              onPlayNext = {
+                onPlayNext(ep)
+                scope.launch { snackbarHostState.showSnackbar("Added to play next") }
+              },
+              onPlayLast = {
+                onPlayLast(ep)
+                scope.launch { snackbarHostState.showSnackbar("Added to play last") }
+              },
+              onDownload = {
+                onDownload(ep)
+                scope.launch {
+                  snackbarHostState.showSnackbar("Download started")
+                }
+              },
+              onRemoveDownload = {
+                onRemoveDownload(ep)
+                scope.launch {
+                  snackbarHostState.showSnackbar("Download removed")
+                }
+              },
+              onTogglePlayed = {
+                onTogglePlayed(ep)
+                scope.launch {
+                  snackbarHostState.showSnackbar(if (ep.completed == 1) "Marked unplayed" else "Marked played")
+                }
+              },
+              downloadProgress = { downloadProgress(ep) },
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+          }
         }
       }
     }
@@ -330,7 +334,7 @@ private fun EpisodeListRow(
         onClick = onPlay,
         onLongClick = onPlayNext,
       )
-      .padding(horizontal = 12.dp, vertical = 10.dp)
+      .padding(horizontal = 12.dp, vertical = 12.dp)
   ) {
     Row(
       modifier = Modifier.fillMaxWidth(),
@@ -338,13 +342,13 @@ private fun EpisodeListRow(
       verticalAlignment = Alignment.CenterVertically
     ) {
       var rowMenuOpen by remember { mutableStateOf(false) }
-      Row(modifier = Modifier.weight(1f).padding(end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+      Row(modifier = Modifier.weight(1f).padding(end = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         if (ep.completed == 1) {
           Icon(
             Icons.Filled.CheckCircle,
             contentDescription = "Played",
             tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(end = 6.dp)
+            modifier = Modifier.padding(end = 8.dp)
           )
         }
         Text(
@@ -357,14 +361,6 @@ private fun EpisodeListRow(
 
       val downloaded = !ep.localFileUri.isNullOrBlank()
       val downloading = !downloaded && ep.downloadId != 0L
-
-      // Quick actions
-      IconButton(onClick = onPlayNext) {
-        Text("Next", style = MaterialTheme.typography.labelLarge)
-      }
-      IconButton(onClick = onPlayLast) {
-        Text("Last", style = MaterialTheme.typography.labelLarge)
-      }
 
       // Row menu (anchor to the 3-dots button)
       androidx.compose.foundation.layout.Box(
