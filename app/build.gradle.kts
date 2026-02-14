@@ -51,6 +51,9 @@ dependencies {
   implementation("androidx.compose.ui:ui")
   implementation("androidx.compose.ui:ui-tooling-preview")
 
+  // Images
+  implementation("io.coil-kt:coil-compose:2.6.0")
+
   // Persist settings (theme)
   implementation("androidx.datastore:datastore-preferences:1.1.1")
   // Some devices/emulators have crashed without this being present explicitly.

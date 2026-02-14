@@ -18,6 +18,10 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -37,6 +41,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -179,7 +186,21 @@ fun NowPlayingScreen(
       verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
       // Title block
-      Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+      Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // Artwork (optional)
+        artworkUrl?.takeIf { it.isNotBlank() }?.let { url ->
+          val ctx = LocalContext.current
+          AsyncImage(
+            model = ImageRequest.Builder(ctx).data(url).crossfade(true).build(),
+            contentDescription = "Artwork",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+              .fillMaxWidth()
+              .height(240.dp)
+              .clip(RoundedCornerShape(20.dp))
+          )
+        }
+
         Text(
           text = title ?: "—",
           style = MaterialTheme.typography.titleLarge,
