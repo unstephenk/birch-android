@@ -871,6 +871,22 @@ private fun BirchApp() {
                 }
               }
             },
+            onPlayNext = {
+              val c = controller ?: return@NowPlayingScreen
+              val guid = c.currentMediaItem?.mediaId ?: return@NowPlayingScreen
+              scope.launch {
+                val ep = repo.getEpisodeByGuid(guid) ?: return@launch
+                repo.enqueueNext(ep.title, ep.guid, ep.audioUrl)
+              }
+            },
+            onPlayLast = {
+              val c = controller ?: return@NowPlayingScreen
+              val guid = c.currentMediaItem?.mediaId ?: return@NowPlayingScreen
+              scope.launch {
+                val ep = repo.getEpisodeByGuid(guid) ?: return@launch
+                repo.enqueueLast(ep.title, ep.guid, ep.audioUrl)
+              }
+            },
             onSetSpeed = { speed ->
               val c = controller ?: return@NowPlayingScreen
               c.setPlaybackParameters(PlaybackParameters(speed, playbackPitch))

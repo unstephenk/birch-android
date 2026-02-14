@@ -69,6 +69,8 @@ fun NowPlayingScreen(
   onForward30: () -> Unit,
   onPlayFromBeginning: () -> Unit,
   onMarkPlayed: () -> Unit,
+  onPlayNext: () -> Unit,
+  onPlayLast: () -> Unit,
   onSetSpeed: (Float) -> Unit,
   onSetPitch: (Float) -> Unit,
   onToggleSkipSilence: (Boolean) -> Unit,
@@ -240,6 +242,19 @@ fun NowPlayingScreen(
           Icon(Icons.Filled.Done, contentDescription = null)
           Spacer(Modifier.padding(4.dp))
           Text("Mark played")
+        }
+      }
+
+      Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
+      ) {
+        TextButton(onClick = onPlayNext) {
+          Text("Play next")
+        }
+        TextButton(onClick = onPlayLast) {
+          Text("Play last")
         }
       }
 
