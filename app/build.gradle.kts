@@ -54,6 +54,9 @@ dependencies {
   // Persist settings (theme)
   implementation("androidx.datastore:datastore-preferences:1.1.1")
 
+  // Background work
+  implementation("androidx.work:work-runtime-ktx:2.9.0")
+
   // Navigation + lifecycle
   implementation("androidx.navigation:navigation-compose:2.7.7")
   implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")

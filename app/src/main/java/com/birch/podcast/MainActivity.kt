@@ -110,6 +110,11 @@ private fun BirchApp() {
   val db = remember { AppDatabase.get(context) }
   val repo = remember { PodcastRepository(db) }
 
+  // Schedule periodic played-download cleanup.
+  LaunchedEffect(Unit) {
+    com.birch.podcast.downloads.DownloadsCleanupScheduler.sync(context)
+  }
+
   // Download cleanup (best-effort, runs on app start)
   LaunchedEffect(Unit) {
     val days = DownloadPrefs.autoDeleteDays(context, default = 0)

@@ -72,7 +72,9 @@ fun EpisodesScreen(
   val context = LocalContext.current
   var query by remember { mutableStateOf("") }
   var hidePlayed by remember { mutableStateOf(EpisodesPrefs.hidePlayed(context, default = false)) }
-  var filter by remember { mutableStateOf(if (hidePlayed) "Unplayed" else "All") }
+  var hidePlayedThisPodcast by remember { mutableStateOf(EpisodesPrefs.hidePlayedForPodcast(context, podcastId, default = false)) }
+  val effectiveHidePlayed = hidePlayed || hidePlayedThisPodcast
+  var filter by remember { mutableStateOf(if (effectiveHidePlayed) "Unplayed" else "All") }
 
   var autoQueueNewest by remember { mutableStateOf(com.birch.podcast.queue.QueuePrefs.autoAddNewestUnplayed(context, podcastId, default = false)) }
   var menuOpen by remember { mutableStateOf(false) }
@@ -95,7 +97,7 @@ fun EpisodesScreen(
       else -> searched
     }
 
-    val base = if (hidePlayed) base0.filter { it.completed == 0 } else base0
+    val base = if (effectiveHidePlayed) base0.filter { it.completed == 0 } else base0
 
     // Sort: saved first, then newest first.
     base.sortedWith(
@@ -149,7 +151,17 @@ fun EpisodesScreen(
                 menuOpen = false
                 hidePlayed = !hidePlayed
                 EpisodesPrefs.setHidePlayed(context, hidePlayed)
-                filter = if (hidePlayed) "Unplayed" else filter
+                filter = if (hidePlayed || hidePlayedThisPodcast) "Unplayed" else filter
+              }
+            )
+
+            DropdownMenuItem(
+              text = { Text(if (hidePlayedThisPodcast) "Show played (this podcast)" else "Hide played (this podcast)") },
+              onClick = {
+                menuOpen = false
+                hidePlayedThisPodcast = !hidePlayedThisPodcast
+                EpisodesPrefs.setHidePlayedForPodcast(context, podcastId, hidePlayedThisPodcast)
+                filter = if (hidePlayed || hidePlayedThisPodcast) "Unplayed" else filter
               }
             )
 

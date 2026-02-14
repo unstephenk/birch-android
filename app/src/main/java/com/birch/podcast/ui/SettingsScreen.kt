@@ -49,6 +49,7 @@ fun SettingsScreen(
     autoDeleteDaysText = txt
     val n = txt.toIntOrNull() ?: return
     DownloadPrefs.setAutoDeleteDays(context, n)
+    com.birch.podcast.downloads.DownloadsCleanupScheduler.sync(context)
   }
 
   Scaffold(
