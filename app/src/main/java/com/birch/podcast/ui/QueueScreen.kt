@@ -55,6 +55,7 @@ fun QueueScreen(
 ) {
   val queue by vm.queue.collectAsState()
   var confirmClear by remember { mutableStateOf(false) }
+  var menuOpen by remember { mutableStateOf(false) }
 
   Scaffold(
     topBar = {
@@ -64,8 +65,18 @@ fun QueueScreen(
           IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
         },
         actions = {
-          IconButton(onClick = { confirmClear = true }, enabled = queue.isNotEmpty()) {
-            Icon(Icons.Filled.ClearAll, contentDescription = "Clear queue")
+          IconButton(onClick = { menuOpen = true }) {
+            Icon(Icons.Filled.MoreVert, contentDescription = "Menu")
+          }
+          DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            DropdownMenuItem(
+              text = { Text("Clear upcoming (keep playing)") },
+              enabled = queue.isNotEmpty(),
+              onClick = {
+                menuOpen = false
+                confirmClear = true
+              }
+            )
           }
         }
       )
@@ -74,7 +85,7 @@ fun QueueScreen(
     if (confirmClear) {
       AlertDialog(
         onDismissRequest = { confirmClear = false },
-        title = { Text("Clear queue?") },
+        title = { Text("Clear upcoming?") },
         text = { Text("This clears upcoming items in the queue. Current playback will continue.") },
         confirmButton = {
           TextButton(
