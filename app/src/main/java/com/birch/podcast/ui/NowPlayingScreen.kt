@@ -190,13 +190,14 @@ fun NowPlayingScreen(
         // Artwork (optional)
         artworkUrl?.takeIf { it.isNotBlank() }?.let { url ->
           val ctx = LocalContext.current
+          // Use Fit (letterbox) instead of Crop to avoid cutting off artwork.
           AsyncImage(
             model = ImageRequest.Builder(ctx).data(url).crossfade(true).build(),
             contentDescription = "Artwork",
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             modifier = Modifier
               .fillMaxWidth()
-              .height(240.dp)
+              .height(280.dp)
               .clip(RoundedCornerShape(20.dp))
           )
         }
