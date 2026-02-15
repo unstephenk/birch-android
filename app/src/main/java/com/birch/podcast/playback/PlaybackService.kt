@@ -70,6 +70,8 @@ class PlaybackService : MediaSessionService() {
             .buildUpon()
             .add(androidx.media3.session.SessionCommand(PlaybackCommands.ACTION_SET_BOOST, Bundle.EMPTY))
             .add(androidx.media3.session.SessionCommand(PlaybackCommands.ACTION_SET_SKIP_SILENCE, Bundle.EMPTY))
+            .add(androidx.media3.session.SessionCommand(PlaybackCommands.ACTION_CYCLE_SPEED, Bundle.EMPTY))
+            .add(androidx.media3.session.SessionCommand(PlaybackCommands.ACTION_TOGGLE_FAVORITE_EPISODE, Bundle.EMPTY))
             .build()
           val playerCommands = base.availablePlayerCommands
             .buildUpon()
@@ -97,12 +99,32 @@ class PlaybackService : MediaSessionService() {
               player?.skipSilenceEnabled = enabled
               return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
             }
+
+            PlaybackCommands.ACTION_CYCLE_SPEED -> {
+              val p = player ?: return Futures.immediateFuture(SessionResult(SessionResult.RESULT_ERROR_BAD_VALUE))
+              val cur = p.playbackParameters.speed
+              val steps = listOf(1.0f, 1.2f, 1.5f, 2.0f)
+              val idx = steps.indexOfFirst { kotlin.math.abs(it - cur) < 0.01f }
+              val next = steps[(if (idx >= 0) idx + 1 else 0) % steps.size]
+              p.setPlaybackSpeed(next)
+              return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
+
+            PlaybackCommands.ACTION_TOGGLE_FAVORITE_EPISODE -> {
+              // UI/layout first: wire this up to persistence next.
+              return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+            }
           }
           return super.onCustomCommand(session, controller, customCommand, args)
         }
       })
       .build().also { session ->
         // Notification / lockscreen buttons.
+        val speed = CommandButton.Builder()
+          .setDisplayName("1x")
+          .setIconResId(android.R.drawable.ic_menu_manage) // placeholder icon; refine later
+          .setSessionCommand(androidx.media3.session.SessionCommand(PlaybackCommands.ACTION_CYCLE_SPEED, Bundle.EMPTY))
+          .build()
         val rewind = CommandButton.Builder()
           .setDisplayName("Rewind")
           .setIconResId(android.R.drawable.ic_media_rew)
@@ -113,7 +135,14 @@ class PlaybackService : MediaSessionService() {
           .setIconResId(android.R.drawable.ic_media_ff)
           .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
           .build()
-        session.setCustomLayout(listOf(rewind, fwd))
+        val favorite = CommandButton.Builder()
+          .setDisplayName("Favorite")
+          .setIconResId(android.R.drawable.btn_star_big_off)
+          .setSessionCommand(androidx.media3.session.SessionCommand(PlaybackCommands.ACTION_TOGGLE_FAVORITE_EPISODE, Bundle.EMPTY))
+          .build()
+
+        // Order: Speed • Rewind • Play/Pause (system) • Forward • Favorite
+        session.setCustomLayout(listOf(speed, rewind, fwd, favorite))
       }
 
     // Media3 default notification (transport controls + BT/lockscreen)

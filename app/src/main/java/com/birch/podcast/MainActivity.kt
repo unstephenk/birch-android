@@ -560,18 +560,18 @@ private fun BirchApp() {
       // Per-podcast playback prefs (fallback to global)
       val speed = if (effectivePodcastId != null) PlaybackPrefs.getSpeedForPodcast(context, effectivePodcastId) else PlaybackPrefs.getSpeed(context)
       val pitch = if (effectivePodcastId != null) PlaybackPrefs.getPitchForPodcast(context, effectivePodcastId) else PlaybackPrefs.getPitch(context)
-      val subtitle = "${speed}x • ${pitch}p"
-
       val podcast = effectivePodcastId?.let { id -> runCatching { db.podcasts().getById(id) }.getOrNull() }
+      val podcastTitle = podcast?.title
       val artworkUri = podcast?.imageUrl?.takeIf { it.isNotBlank() }?.let { runCatching { Uri.parse(it) }.getOrNull() }
 
+      // Notification tray: show Podcast name (title) + Episode title (subtitle), like your reference screenshot.
       val item = MediaItem.Builder()
         .setMediaId(guid)
         .setUri(uri)
         .setMediaMetadata(
           MediaMetadata.Builder()
-            .setTitle(title)
-            .setSubtitle(subtitle)
+            .setTitle(podcastTitle ?: "Podcast")
+            .setSubtitle(title)
             .setArtworkUri(artworkUri)
             .build()
         )
