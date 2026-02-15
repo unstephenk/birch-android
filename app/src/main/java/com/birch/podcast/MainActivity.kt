@@ -41,6 +41,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -360,20 +361,23 @@ private fun BirchApp() {
 
   // Playback controller + UI state
   var controller by remember { mutableStateOf<MediaController?>(null) }
-  var nowTitle by remember { mutableStateOf<String?>(null) }
+
+  // Persist the UI "now playing" context across rotation.
+  var nowGuid by rememberSaveable { mutableStateOf<String?>(null) }
+  var nowTitle by rememberSaveable { mutableStateOf<String?>(null) }
   var isPlaying by remember { mutableStateOf(false) }
   var positionMs by remember { mutableStateOf(0L) }
   var durationMs by remember { mutableStateOf(0L) }
-  var playbackSpeed by remember { mutableStateOf(PlaybackPrefs.getSpeed(context, 1.0f)) }
-  var playbackPitch by remember { mutableStateOf(PlaybackPrefs.getPitch(context, 1.0f)) }
-  var skipSilenceEnabled by remember { mutableStateOf(PlaybackPrefs.getSkipSilence(context, false)) }
-  var boostVolumeEnabled by remember { mutableStateOf(PlaybackPrefs.getBoostVolume(context, false)) }
-  var nowPodcastId by remember { mutableStateOf<Long?>(null) }
-  var nowPodcastTitle by remember { mutableStateOf<String?>(null) }
-  var nowEpisodeDate by remember { mutableStateOf<String?>(null) }
-  var nowArtworkUrl by remember { mutableStateOf<String?>(null) }
-  var nowTrimIntroMs by remember { mutableStateOf(0L) }
-  var nowTrimOutroMs by remember { mutableStateOf(0L) }
+  var playbackSpeed by rememberSaveable { mutableStateOf(PlaybackPrefs.getSpeed(context, 1.0f)) }
+  var playbackPitch by rememberSaveable { mutableStateOf(PlaybackPrefs.getPitch(context, 1.0f)) }
+  var skipSilenceEnabled by rememberSaveable { mutableStateOf(PlaybackPrefs.getSkipSilence(context, false)) }
+  var boostVolumeEnabled by rememberSaveable { mutableStateOf(PlaybackPrefs.getBoostVolume(context, false)) }
+  var nowPodcastId by rememberSaveable { mutableStateOf<Long?>(null) }
+  var nowPodcastTitle by rememberSaveable { mutableStateOf<String?>(null) }
+  var nowEpisodeDate by rememberSaveable { mutableStateOf<String?>(null) }
+  var nowArtworkUrl by rememberSaveable { mutableStateOf<String?>(null) }
+  var nowTrimIntroMs by rememberSaveable { mutableStateOf(0L) }
+  var nowTrimOutroMs by rememberSaveable { mutableStateOf(0L) }
   var chapters by remember { mutableStateOf<List<ChapterUi>>(emptyList()) }
 
   // Sleep timer
@@ -431,6 +435,32 @@ private fun BirchApp() {
   }
 
   // Keep UI in sync with controller.
+  // Also bootstrap the "now playing" UI state from the current media item when the controller is (re)created
+  // (e.g., after screen rotation).
+  LaunchedEffect(controller) {
+    val c = controller ?: return@LaunchedEffect
+    val cur = c.currentMediaItem ?: return@LaunchedEffect
+    val guid = cur.mediaId
+    nowGuid = guid
+    nowTitle = cur.mediaMetadata.title?.toString() ?: nowTitle
+
+    // Best-effort artwork fallback from MediaMetadata.
+    if (nowArtworkUrl.isNullOrBlank()) {
+      nowArtworkUrl = cur.mediaMetadata.artworkUri?.toString()
+    }
+
+    scope.launch {
+      val ep = repo.getEpisodeByGuid(guid) ?: return@launch
+      nowPodcastId = ep.podcastId
+      val podcast = runCatching { db.podcasts().getById(ep.podcastId) }.getOrNull()
+      nowPodcastTitle = podcast?.title
+      nowArtworkUrl = podcast?.imageUrl ?: nowArtworkUrl
+      nowEpisodeDate = ep.publishedAtMs?.let { ms -> com.birch.podcast.ui.formatEpochMsShort(ms) }
+      nowTrimIntroMs = PlaybackPrefs.getTrimIntroMs(context, ep.podcastId)
+      nowTrimOutroMs = PlaybackPrefs.getTrimOutroMs(context, ep.podcastId)
+    }
+  }
+
   val listener = remember {
     object : Player.Listener {
       override fun onIsPlayingChanged(isPlayingNow: Boolean) {
@@ -438,6 +468,7 @@ private fun BirchApp() {
       }
 
       override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+        nowGuid = mediaItem?.mediaId
         nowTitle = mediaItem?.mediaMetadata?.title?.toString()
         chapters = emptyList()
 
@@ -518,6 +549,7 @@ private fun BirchApp() {
   fun playEpisode(title: String, guid: String, audioUrl: String, podcastId: Long? = null) {
     val c = controller ?: return
 
+    nowGuid = guid
     nowTitle = title
 
     scope.launch {
