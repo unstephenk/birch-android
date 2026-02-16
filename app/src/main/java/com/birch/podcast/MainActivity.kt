@@ -852,6 +852,17 @@ private fun BirchApp() {
             podcastTitle = nowPodcastTitle,
             episodeDate = nowEpisodeDate,
             isPlaying = isPlaying,
+            darkTheme = dark,
+            onToggleTheme = {
+              scope.launch {
+                val next = when (mode) {
+                  com.birch.podcast.theme.ThemeMode.SYSTEM -> com.birch.podcast.theme.ThemeMode.DARK
+                  com.birch.podcast.theme.ThemeMode.DARK -> com.birch.podcast.theme.ThemeMode.LIGHT
+                  com.birch.podcast.theme.ThemeMode.LIGHT -> com.birch.podcast.theme.ThemeMode.DARK
+                }
+                themePrefs.setThemeMode(next)
+              }
+            },
             positionMs = positionMs,
             durationMs = durationMs,
             playbackSpeed = playbackSpeed,

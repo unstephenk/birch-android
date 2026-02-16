@@ -32,6 +32,8 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,6 +64,8 @@ fun NowPlayingScreen(
   podcastTitle: String?,
   episodeDate: String?,
   isPlaying: Boolean,
+  darkTheme: Boolean,
+  onToggleTheme: () -> Unit,
   positionMs: Long,
   durationMs: Long,
   playbackSpeed: Float,
@@ -109,6 +113,13 @@ fun NowPlayingScreen(
           }
         },
         actions = {
+          IconButton(onClick = onToggleTheme) {
+            Icon(
+              if (darkTheme) Icons.Filled.DarkMode else Icons.Filled.LightMode,
+              contentDescription = "Toggle theme",
+            )
+          }
+
           IconButton(onClick = onOpenQueue) {
             Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Queue")
           }
