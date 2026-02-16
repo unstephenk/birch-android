@@ -3,6 +3,7 @@ package com.birch.podcast.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,7 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 fun NowPlayingScreen(
   title: String?,
@@ -275,10 +276,12 @@ fun NowPlayingScreen(
       }
 
       // Secondary actions
-      Row(
+      // These chips can get cramped on narrower widths (they don't wrap in a Row).
+      // Use FlowRow so they naturally wrap instead of overlapping/clipping.
+      FlowRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
       ) {
         FilterChip(
           selected = false,
@@ -294,13 +297,6 @@ fun NowPlayingScreen(
           leadingIcon = { Icon(Icons.Filled.Done, contentDescription = null) },
           colors = FilterChipDefaults.filterChipColors(),
         )
-      }
-
-      Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-      ) {
         FilterChip(selected = false, onClick = onPlayNext, label = { Text("Play next") })
         FilterChip(selected = false, onClick = onPlayLast, label = { Text("Play last") })
       }
