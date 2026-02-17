@@ -89,6 +89,7 @@ import com.birch.podcast.ui.QueueViewModel
 import com.birch.podcast.playback.PlaybackCommands
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -729,7 +730,8 @@ private fun BirchApp() {
             darkTheme = dark,
             onToggleTheme = {
               scope.launch {
-                val next = when (mode) {
+                val current = themePrefs.themeMode.first()
+                val next = when (current) {
                   com.birch.podcast.theme.ThemeMode.SYSTEM -> com.birch.podcast.theme.ThemeMode.DARK
                   com.birch.podcast.theme.ThemeMode.DARK -> com.birch.podcast.theme.ThemeMode.LIGHT
                   com.birch.podcast.theme.ThemeMode.LIGHT -> com.birch.podcast.theme.ThemeMode.SYSTEM
@@ -875,7 +877,8 @@ private fun BirchApp() {
             darkTheme = dark,
             onToggleTheme = {
               scope.launch {
-                val next = when (mode) {
+                val current = themePrefs.themeMode.first()
+                val next = when (current) {
                   com.birch.podcast.theme.ThemeMode.SYSTEM -> com.birch.podcast.theme.ThemeMode.DARK
                   com.birch.podcast.theme.ThemeMode.DARK -> com.birch.podcast.theme.ThemeMode.LIGHT
                   com.birch.podcast.theme.ThemeMode.LIGHT -> com.birch.podcast.theme.ThemeMode.SYSTEM
@@ -888,11 +891,7 @@ private fun BirchApp() {
             playbackSpeed = playbackSpeed,
             playbackPitch = playbackPitch,
             sleepTimerLabel = sleepTimerLabel,
-            skipSilenceEnabled = skipSilenceEnabled,
-            boostVolumeEnabled = boostVolumeEnabled,
             artworkUrl = nowArtworkUrl,
-            trimIntroSec = (nowTrimIntroMs / 1000L).toInt(),
-            trimOutroSec = (nowTrimOutroMs / 1000L).toInt(),
             chapters = chapters,
             onBack = { nav.popBackStack() },
             onOpenQueue = { nav.navigate("queue") },
@@ -977,32 +976,6 @@ private fun BirchApp() {
               val pid = nowPodcastId
               if (pid != null) PlaybackPrefs.setPitchForPodcast(context, pid, pitch) else PlaybackPrefs.setPitch(context, pitch)
               refreshNotificationSubtitle()
-            },
-            onToggleSkipSilence = { enabled ->
-              val c = controller ?: return@NowPlayingScreen
-              skipSilenceEnabled = enabled
-              PlaybackPrefs.setSkipSilence(context, enabled)
-              c.sendCustomCommand(SessionCommand(PlaybackCommands.ACTION_SET_SKIP_SILENCE, Bundle.EMPTY), Bundle().apply {
-                putBoolean(PlaybackCommands.EXTRA_ENABLED, enabled)
-              })
-            },
-            onToggleBoostVolume = { enabled ->
-              val c = controller ?: return@NowPlayingScreen
-              boostVolumeEnabled = enabled
-              PlaybackPrefs.setBoostVolume(context, enabled)
-              c.sendCustomCommand(SessionCommand(PlaybackCommands.ACTION_SET_BOOST, Bundle.EMPTY), Bundle().apply {
-                putBoolean(PlaybackCommands.EXTRA_ENABLED, enabled)
-              })
-            },
-            onSetTrimIntroSec = { sec ->
-              val pid = nowPodcastId ?: return@NowPlayingScreen
-              nowTrimIntroMs = sec.coerceAtLeast(0) * 1000L
-              PlaybackPrefs.setTrimIntroMs(context, pid, nowTrimIntroMs)
-            },
-            onSetTrimOutroSec = { sec ->
-              val pid = nowPodcastId ?: return@NowPlayingScreen
-              nowTrimOutroMs = sec.coerceAtLeast(0) * 1000L
-              PlaybackPrefs.setTrimOutroMs(context, pid, nowTrimOutroMs)
             },
             onSeekToChapter = { ms ->
               controller?.seekTo(ms)
@@ -1098,12 +1071,6 @@ private fun MiniPlayerBar(
   ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
       Text(
-        text = "Mini player",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
-
-      Text(
         text = title ?: "Now playing",
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -1111,12 +1078,6 @@ private fun MiniPlayerBar(
       )
 
       if (durationMs > 0) {
-        Text(
-          text = "Seek slider",
-          style = MaterialTheme.typography.labelSmall,
-          color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-
         val value = (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
         Slider(
           value = value,
@@ -1124,12 +1085,6 @@ private fun MiniPlayerBar(
           modifier = Modifier.fillMaxWidth()
         )
       }
-
-      Text(
-        text = "Controls",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-      )
 
       Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         IconButton(onClick = onRewind15) {

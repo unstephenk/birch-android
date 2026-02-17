@@ -71,11 +71,7 @@ fun NowPlayingScreen(
   playbackSpeed: Float,
   playbackPitch: Float,
   sleepTimerLabel: String?,
-  skipSilenceEnabled: Boolean,
-  boostVolumeEnabled: Boolean,
   artworkUrl: String?,
-  trimIntroSec: Int,
-  trimOutroSec: Int,
   chapters: List<ChapterUi>,
   onBack: () -> Unit,
   onOpenQueue: () -> Unit,
@@ -92,10 +88,6 @@ fun NowPlayingScreen(
   onPlayLast: () -> Unit,
   onSetSpeed: (Float) -> Unit,
   onSetPitch: (Float) -> Unit,
-  onToggleSkipSilence: (Boolean) -> Unit,
-  onToggleBoostVolume: (Boolean) -> Unit,
-  onSetTrimIntroSec: (Int) -> Unit,
-  onSetTrimOutroSec: (Int) -> Unit,
   onSeekToChapter: (Long) -> Unit,
 ) {
   var speedMenuOpen by remember { mutableStateOf(false) }
@@ -237,12 +229,6 @@ fun NowPlayingScreen(
       ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
           if (durationMs > 0) {
-            Text(
-              text = "Now Playing: seek slider",
-              style = MaterialTheme.typography.labelSmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
             val value = (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
             Slider(
               value = value,
@@ -316,36 +302,6 @@ fun NowPlayingScreen(
         )
         FilterChip(selected = false, onClick = onPlayNext, label = { Text("Play next") })
         FilterChip(selected = false, onClick = onPlayLast, label = { Text("Play last") })
-      }
-
-      // Toggles + trim controls
-      ElevatedCard(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-          Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Skip silence", style = MaterialTheme.typography.bodyMedium)
-            Switch(checked = skipSilenceEnabled, onCheckedChange = onToggleSkipSilence)
-          }
-          Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("Boost volume", style = MaterialTheme.typography.bodyMedium)
-            Switch(checked = boostVolumeEnabled, onCheckedChange = onToggleBoostVolume)
-          }
-
-          Text("Trim intro: ${trimIntroSec}s", style = MaterialTheme.typography.bodyMedium)
-          Slider(
-            value = trimIntroSec.toFloat(),
-            onValueChange = { onSetTrimIntroSec(it.toInt()) },
-            valueRange = 0f..120f,
-            steps = 11,
-          )
-
-          Text("Trim outro: ${trimOutroSec}s", style = MaterialTheme.typography.bodyMedium)
-          Slider(
-            value = trimOutroSec.toFloat(),
-            onValueChange = { onSetTrimOutroSec(it.toInt()) },
-            valueRange = 0f..120f,
-            steps = 11,
-          )
-        }
       }
 
       if (chapters.isNotEmpty()) {
