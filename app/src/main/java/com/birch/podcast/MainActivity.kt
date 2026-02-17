@@ -675,6 +675,11 @@ private fun BirchApp() {
 
   BirchTheme(darkTheme = dark) {
     val nav = rememberNavController()
+
+    // Explicit per-screen flags (more reliable than route parsing; fixes mini-player overlay bugs).
+    var inNowPlaying by remember { mutableStateOf(false) }
+    var inSettings by remember { mutableStateOf(false) }
+
     val navBackStackEntry by nav.currentBackStackEntryAsState()
     val dest = navBackStackEntry?.destination
     val onNowPlaying = dest?.hierarchy?.any { it.route == "nowplaying" } == true
@@ -684,7 +689,7 @@ private fun BirchApp() {
       bottomBar = {
         // Show the mini-player only on routes where it won't cover important bottom UI.
         // If the route is unknown/null, fail safe by hiding it.
-        val showMiniPlayer = dest != null && !onNowPlaying && !onSettings
+        val showMiniPlayer = dest != null && !onNowPlaying && !onSettings && !inNowPlaying && !inSettings
 
         if (showMiniPlayer && !nowTitle.isNullOrBlank()) {
           MiniPlayerBar(
@@ -846,6 +851,11 @@ private fun BirchApp() {
         }
 
         composable("nowplaying") {
+          DisposableEffect(Unit) {
+            inNowPlaying = true
+            onDispose { inNowPlaying = false }
+          }
+
           fun refreshNotificationSubtitle() {
             val c = controller ?: return
             val cur = c.currentMediaItem ?: return
@@ -1043,6 +1053,11 @@ private fun BirchApp() {
         }
 
         composable("settings") {
+          DisposableEffect(Unit) {
+            inSettings = true
+            onDispose { inSettings = false }
+          }
+
           SettingsScreen(onBack = { nav.popBackStack() })
         }
 
