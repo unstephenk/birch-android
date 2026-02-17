@@ -56,6 +56,7 @@ import androidx.media3.common.Player
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -675,15 +676,15 @@ private fun BirchApp() {
   BirchTheme(darkTheme = dark) {
     val nav = rememberNavController()
     val navBackStackEntry by nav.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
+    val dest = navBackStackEntry?.destination
+    val onNowPlaying = dest?.hierarchy?.any { it.route == "nowplaying" } == true
+    val onSettings = dest?.hierarchy?.any { it.route == "settings" } == true
 
     Scaffold(
       bottomBar = {
         // Show the mini-player only on routes where it won't cover important bottom UI.
         // If the route is unknown/null, fail safe by hiding it.
-        val showMiniPlayer = currentRoute != null &&
-          currentRoute != "nowplaying" &&
-          currentRoute != "settings"
+        val showMiniPlayer = dest != null && !onNowPlaying && !onSettings
 
         if (showMiniPlayer && !nowTitle.isNullOrBlank()) {
           MiniPlayerBar(
