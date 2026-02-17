@@ -717,7 +717,7 @@ private fun BirchApp() {
                 val next = when (mode) {
                   com.birch.podcast.theme.ThemeMode.SYSTEM -> com.birch.podcast.theme.ThemeMode.DARK
                   com.birch.podcast.theme.ThemeMode.DARK -> com.birch.podcast.theme.ThemeMode.LIGHT
-                  com.birch.podcast.theme.ThemeMode.LIGHT -> com.birch.podcast.theme.ThemeMode.DARK
+                  com.birch.podcast.theme.ThemeMode.LIGHT -> com.birch.podcast.theme.ThemeMode.SYSTEM
                 }
                 themePrefs.setThemeMode(next)
               }
@@ -858,7 +858,7 @@ private fun BirchApp() {
                 val next = when (mode) {
                   com.birch.podcast.theme.ThemeMode.SYSTEM -> com.birch.podcast.theme.ThemeMode.DARK
                   com.birch.podcast.theme.ThemeMode.DARK -> com.birch.podcast.theme.ThemeMode.LIGHT
-                  com.birch.podcast.theme.ThemeMode.LIGHT -> com.birch.podcast.theme.ThemeMode.DARK
+                  com.birch.podcast.theme.ThemeMode.LIGHT -> com.birch.podcast.theme.ThemeMode.SYSTEM
                 }
                 themePrefs.setThemeMode(next)
               }
