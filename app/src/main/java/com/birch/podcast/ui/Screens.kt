@@ -2,16 +2,23 @@ package com.birch.podcast.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -37,6 +44,8 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ViewList
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.window.PopupProperties
@@ -51,7 +60,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.birch.podcast.data.db.PodcastEntity
+import com.birch.podcast.theme.Dimens
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -70,6 +83,7 @@ fun LibraryScreen(
   var query by remember { mutableStateOf("") }
   var sortMenuOpen by remember { mutableStateOf(false) }
   var sortMode by remember { mutableStateOf("Recent") }
+  var gridMode by remember { mutableStateOf(false) }
 
   val filtered = remember(podcasts, query, sortMode) {
     val q = query.trim()
@@ -98,6 +112,13 @@ fun LibraryScreen(
           }
           IconButton(onClick = { sortMenuOpen = true }) {
             Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
+          }
+
+          IconButton(onClick = { gridMode = !gridMode }) {
+            Icon(
+              if (gridMode) Icons.Filled.ViewList else Icons.Filled.GridView,
+              contentDescription = if (gridMode) "List view" else "Grid view",
+            )
           }
           DropdownMenu(expanded = sortMenuOpen, onDismissRequest = { sortMenuOpen = false }) {
             DropdownMenuItem(
@@ -157,7 +178,9 @@ fun LibraryScreen(
         OutlinedTextField(
           value = query,
           onValueChange = { query = it },
-          modifier = Modifier.fillMaxWidth().padding(12.dp),
+          modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimens.screenH, vertical = Dimens.s12),
           label = { Text("Search podcasts") },
           singleLine = true,
         )
@@ -171,15 +194,31 @@ fun LibraryScreen(
             Text("No matches")
           }
         } else {
-          LazyColumn(modifier = Modifier.fillMaxSize()) {
-            items(filtered, key = { it.id }) { p ->
-              PodcastRow(
-                podcast = p,
-                vm = vm,
-                onOpen = { onOpenPodcast(p.id) },
-                onRefresh = { vm.refresh(p) },
-                onUnsubscribe = { confirmUnsub = p },
-              )
+          if (gridMode) {
+            LazyVerticalGrid(
+              columns = GridCells.Adaptive(minSize = 160.dp),
+              modifier = Modifier.fillMaxSize().padding(horizontal = Dimens.screenH),
+              horizontalArrangement = Arrangement.spacedBy(Dimens.s12),
+              verticalArrangement = Arrangement.spacedBy(Dimens.s12),
+            ) {
+              gridItems(filtered, key = { it.id }) { p ->
+                PodcastGridCard(
+                  podcast = p,
+                  onOpen = { onOpenPodcast(p.id) },
+                )
+              }
+            }
+          } else {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+              items(filtered, key = { it.id }) { p ->
+                PodcastRow(
+                  podcast = p,
+                  vm = vm,
+                  onOpen = { onOpenPodcast(p.id) },
+                  onRefresh = { vm.refresh(p) },
+                  onUnsubscribe = { confirmUnsub = p },
+                )
+              }
             }
           }
         }
@@ -210,7 +249,7 @@ private fun PodcastRow(
   Card(
     modifier = Modifier
       .fillMaxWidth()
-      .padding(horizontal = 12.dp, vertical = 8.dp)
+      .padding(horizontal = Dimens.screenH, vertical = Dimens.s8)
       .combinedClickable(
         onClick = onOpen,
         onLongClick = { menuOpen = true },
@@ -218,28 +257,52 @@ private fun PodcastRow(
   ) {
     Box(modifier = Modifier.fillMaxWidth()) {
       Row(
-        modifier = Modifier.fillMaxWidth().padding(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(Dimens.cardPadding),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
       ) {
-        Column(modifier = Modifier.weight(1f).padding(end = 8.dp)) {
-          Text(normalizePodcastTitle(podcast.title), style = MaterialTheme.typography.titleMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row(
+          modifier = Modifier.weight(1f),
+          verticalAlignment = Alignment.CenterVertically,
+          horizontalArrangement = Arrangement.spacedBy(Dimens.s12),
+        ) {
+          val ctx = LocalContext.current
+          val url = podcast.imageUrl
+          AsyncImage(
+            model = ImageRequest.Builder(ctx).data(url).crossfade(true).build(),
+            contentDescription = "Podcast artwork",
+            modifier = Modifier.size(Dimens.artworkSm),
+          )
 
-          val refreshed = formatEpochMsWithTime(podcast.lastRefreshAtMs)
-          if (!refreshed.isNullOrBlank()) {
-            Text("Updated: $refreshed", style = MaterialTheme.typography.labelSmall)
-          }
-
-          if (totalCount != null && unplayedCount != null) {
+          Column(modifier = Modifier.weight(1f)) {
             Text(
-              "Episodes: ${totalCount} • Unplayed: ${unplayedCount}",
-              style = MaterialTheme.typography.labelSmall,
-              color = MaterialTheme.colorScheme.onSurfaceVariant,
+              normalizePodcastTitle(podcast.title),
+              style = MaterialTheme.typography.titleMedium,
+              maxLines = 1,
+              overflow = TextOverflow.Ellipsis,
             )
-          }
 
-          podcast.description?.takeIf { it.isNotBlank() }?.let { desc ->
-            Text(desc, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            val refreshed = formatEpochMsWithTime(podcast.lastRefreshAtMs)
+            if (!refreshed.isNullOrBlank()) {
+              Text("Updated: $refreshed", style = MaterialTheme.typography.labelSmall)
+            }
+
+            if (totalCount != null && unplayedCount != null) {
+              Text(
+                "Episodes: ${totalCount} • Unplayed: ${unplayedCount}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
+
+            podcast.description?.takeIf { it.isNotBlank() }?.let { desc ->
+              Text(
+                desc,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+              )
+            }
           }
         }
 
@@ -269,6 +332,40 @@ private fun PodcastRow(
           }
         )
       }
+    }
+  }
+}
+
+@Composable
+private fun PodcastGridCard(
+  podcast: PodcastEntity,
+  onOpen: () -> Unit,
+) {
+  val ctx = LocalContext.current
+  Card(
+    modifier = Modifier
+      .fillMaxWidth()
+      .clickable { onOpen() },
+  ) {
+    Column(
+      modifier = Modifier.fillMaxWidth().padding(Dimens.cardPadding),
+      verticalArrangement = Arrangement.spacedBy(Dimens.s10),
+    ) {
+      AsyncImage(
+        model = ImageRequest.Builder(ctx).data(podcast.imageUrl).crossfade(true).build(),
+        contentDescription = "Podcast artwork",
+        modifier = Modifier
+          .fillMaxWidth()
+          .aspectRatio(1f)
+          .clip(RoundedCornerShape(Dimens.s16)),
+      )
+
+      Text(
+        normalizePodcastTitle(podcast.title),
+        style = MaterialTheme.typography.titleSmall,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+      )
     }
   }
 }
