@@ -237,6 +237,12 @@ fun NowPlayingScreen(
       ElevatedCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
           if (durationMs > 0) {
+            Text(
+              text = "Now Playing: seek slider",
+              style = MaterialTheme.typography.labelSmall,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             val value = (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
             Slider(
               value = value,

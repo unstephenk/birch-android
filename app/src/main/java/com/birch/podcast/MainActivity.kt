@@ -1098,6 +1098,12 @@ private fun MiniPlayerBar(
   ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
       Text(
+        text = "Mini player",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+
+      Text(
         text = title ?: "Now playing",
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
@@ -1105,6 +1111,12 @@ private fun MiniPlayerBar(
       )
 
       if (durationMs > 0) {
+        Text(
+          text = "Seek slider",
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+
         val value = (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
         Slider(
           value = value,
@@ -1112,6 +1124,12 @@ private fun MiniPlayerBar(
           modifier = Modifier.fillMaxWidth()
         )
       }
+
+      Text(
+        text = "Controls",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
 
       Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         IconButton(onClick = onRewind15) {
