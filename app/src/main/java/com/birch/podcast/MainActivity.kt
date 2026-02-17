@@ -59,6 +59,7 @@ import androidx.media3.session.SessionToken
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.birch.podcast.data.db.AppDatabase
@@ -673,10 +674,14 @@ private fun BirchApp() {
 
   BirchTheme(darkTheme = dark) {
     val nav = rememberNavController()
+    val navBackStackEntry by nav.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
     Scaffold(
       bottomBar = {
-        if (!nowTitle.isNullOrBlank()) {
+        // Hide the mini-player while on the full Now Playing screen;
+        // otherwise it overlays the bottom content and “squashes” controls.
+        if (currentRoute != "nowplaying" && !nowTitle.isNullOrBlank()) {
           MiniPlayerBar(
             title = nowTitle,
             isPlaying = isPlaying,
