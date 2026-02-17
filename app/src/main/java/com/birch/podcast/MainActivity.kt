@@ -679,9 +679,10 @@ private fun BirchApp() {
 
     Scaffold(
       bottomBar = {
-        // Hide the mini-player while on the full Now Playing screen;
-        // otherwise it overlays the bottom content and “squashes” controls.
-        if (currentRoute != "nowplaying" && !nowTitle.isNullOrBlank()) {
+        // Hide the mini-player on screens where it can overlap bottom content.
+        // (Now Playing already has its own controls; Settings has bottom toggles.)
+        val hideMiniPlayer = currentRoute == "nowplaying" || currentRoute == "settings"
+        if (!hideMiniPlayer && !nowTitle.isNullOrBlank()) {
           MiniPlayerBar(
             title = nowTitle,
             isPlaying = isPlaying,
