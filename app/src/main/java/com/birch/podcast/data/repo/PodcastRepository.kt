@@ -22,6 +22,10 @@ class PodcastRepository(
   fun observeQueue() = db.queue().observe()
   fun observePlaybackHistory(limit: Int = 50) = db.history().observeRecent(limit)
 
+  suspend fun clearPlaybackHistory() {
+    db.history().clearAll()
+  }
+
   suspend fun addPodcast(feedUrl: String): Long {
     // Fetch and parse first so we can save the real title.
     val parsed = fetchAndParse(feedUrl)
