@@ -41,6 +41,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.History
@@ -158,6 +159,9 @@ fun LibraryScreen(
           DropdownMenu(expanded = sortMenuOpen, onDismissRequest = { sortMenuOpen = false }) {
             DropdownMenuItem(
               text = { Text("Recent") },
+              trailingIcon = {
+                if (sortMode == "Recent") Icon(Icons.Filled.Check, contentDescription = null)
+              },
               onClick = {
                 sortMenuOpen = false
                 sortMode = "Recent"
@@ -166,6 +170,9 @@ fun LibraryScreen(
             )
             DropdownMenuItem(
               text = { Text("A-Z") },
+              trailingIcon = {
+                if (sortMode == "A-Z") Icon(Icons.Filled.Check, contentDescription = null)
+              },
               onClick = {
                 sortMenuOpen = false
                 sortMode = "A-Z"
@@ -434,6 +441,7 @@ fun AddFeedScreen(
   onBack: () -> Unit,
   onAdded: (Long) -> Unit,
 ) {
+  val context = LocalContext.current
   var url by remember { mutableStateOf("") }
   val busy by vm.busy.collectAsState()
   val err by vm.error.collectAsState()
@@ -480,6 +488,16 @@ fun AddFeedScreen(
     ) {
       Text("Paste an RSS feed URL")
       Spacer(Modifier.padding(6.dp))
+
+      TextButton(
+        onClick = {
+          val cm = context.getSystemService(android.content.ClipboardManager::class.java)
+          val clip = cm?.primaryClip
+          val txt = clip?.getItemAt(0)?.coerceToText(context)?.toString()
+          if (!txt.isNullOrBlank()) url = txt
+        }
+      ) { Text("Paste") }
+
       OutlinedTextField(
         value = url,
         onValueChange = { url = it },

@@ -6,6 +6,7 @@ object EpisodesPrefs {
   private const val PREFS = "episodes_prefs"
   private const val KEY_HIDE_PLAYED = "hide_played"
   private const val KEY_HIDE_PLAYED_PODCAST_PREFIX = "hide_played_podcast_"
+  private const val KEY_FILTER_PODCAST_PREFIX = "filter_podcast_"
 
   fun hidePlayed(context: Context, default: Boolean = false): Boolean {
     val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -25,5 +26,16 @@ object EpisodesPrefs {
   fun setHidePlayedForPodcast(context: Context, podcastId: Long, hide: Boolean) {
     val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
     p.edit().putBoolean(KEY_HIDE_PLAYED_PODCAST_PREFIX + podcastId, hide).apply()
+  }
+
+  /** 0=All, 1=Unplayed, 2=Downloaded */
+  fun episodeFilterForPodcast(context: Context, podcastId: Long, default: Int = 0): Int {
+    val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    return p.getInt(KEY_FILTER_PODCAST_PREFIX + podcastId, default)
+  }
+
+  fun setEpisodeFilterForPodcast(context: Context, podcastId: Long, filter: Int) {
+    val p = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    p.edit().putInt(KEY_FILTER_PODCAST_PREFIX + podcastId, filter).apply()
   }
 }

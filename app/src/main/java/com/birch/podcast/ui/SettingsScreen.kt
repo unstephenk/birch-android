@@ -22,7 +22,10 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -52,6 +55,7 @@ fun SettingsScreen(
   val themePrefs = remember { ThemePrefs(context) }
   val themeMode = themePrefs.themeMode.collectAsState(initial = ThemeMode.SYSTEM).value
   val scope = rememberCoroutineScope()
+  val snackbarHostState = remember { SnackbarHostState() }
 
   var wifiOnly by remember { mutableStateOf(DownloadPrefs.wifiOnly(context, default = false)) }
   var chargingOnly by remember { mutableStateOf(DownloadPrefs.chargingOnly(context, default = false)) }
@@ -96,7 +100,8 @@ fun SettingsScreen(
           Spacer(Modifier.padding(4.dp))
         }
       )
-    }
+    },
+    snackbarHost = { SnackbarHost(snackbarHostState) },
   ) { padding ->
     Column(
       modifier = Modifier
@@ -221,12 +226,22 @@ fun SettingsScreen(
       }
       val versionName = pkg.versionName ?: ""
       val versionCode = if (android.os.Build.VERSION.SDK_INT >= 28) pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()
+      val versionLabel = "Birch v${versionName} (${versionCode})"
 
       Text(
-        text = "Birch v${versionName} (${versionCode})",
+        text = versionLabel,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
+
+      TextButton(
+        onClick = {
+          val clip = android.content.ClipData.newPlainText("Birch version", versionLabel)
+          val cm = context.getSystemService(android.content.ClipboardManager::class.java)
+          cm?.setPrimaryClip(clip)
+          scope.launch { snackbarHostState.showSnackbar("Copied version") }
+        }
+      ) { Text("Copy version") }
     }
   }
 }

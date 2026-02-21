@@ -57,7 +57,7 @@ fun HistoryScreen(
   Scaffold(
     topBar = {
       TopAppBar(
-        title = { Text("History") },
+        title = { Text(if (items.isNotEmpty()) "History (${items.size})" else "History") },
         navigationIcon = {
           IconButton(onClick = onBack) {
             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")

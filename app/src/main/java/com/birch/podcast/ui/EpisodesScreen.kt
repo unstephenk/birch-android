@@ -77,7 +77,15 @@ fun EpisodesScreen(
   var hidePlayed by remember { mutableStateOf(EpisodesPrefs.hidePlayed(context, default = false)) }
   var hidePlayedThisPodcast by remember { mutableStateOf(EpisodesPrefs.hidePlayedForPodcast(context, podcastId, default = false)) }
   val effectiveHidePlayed = hidePlayed || hidePlayedThisPodcast
-  var filter by remember { mutableStateOf(if (effectiveHidePlayed) "Unplayed" else "All") }
+  var filter by remember {
+    val persisted = EpisodesPrefs.episodeFilterForPodcast(context, podcastId, default = if (effectiveHidePlayed) 1 else 0)
+    val label = when (persisted) {
+      1 -> "Unplayed"
+      2 -> "Downloaded"
+      else -> "All"
+    }
+    mutableStateOf(label)
+  }
 
   var autoQueueNewest by remember { mutableStateOf(com.birch.podcast.queue.QueuePrefs.autoAddNewestUnplayed(context, podcastId, default = false)) }
   var menuOpen by remember { mutableStateOf(false) }
@@ -285,7 +293,15 @@ fun EpisodesScreen(
         listOf("All", "Unplayed", "Downloaded").forEach { label ->
           FilterChip(
             selected = filter == label,
-            onClick = { filter = label },
+            onClick = {
+              filter = label
+              val v = when (label) {
+                "Unplayed" -> 1
+                "Downloaded" -> 2
+                else -> 0
+              }
+              EpisodesPrefs.setEpisodeFilterForPodcast(context, podcastId, v)
+            },
             label = { Text(label) },
           )
         }

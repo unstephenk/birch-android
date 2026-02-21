@@ -35,6 +35,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -167,24 +169,44 @@ fun DownloadsScreen(
             rem?.let { "Remaining: $it" },
           ).joinToString(" • ").ifBlank { null }
 
+          var confirmRemove by remember(ep.id) { mutableStateOf(false) }
+          if (confirmRemove) {
+            AlertDialog(
+              onDismissRequest = { confirmRemove = false },
+              title = { Text("Remove download?") },
+              text = { Text("This deletes the saved file for this episode.") },
+              confirmButton = {
+                TextButton(
+                  onClick = {
+                    confirmRemove = false
+                    val local = ep.localFileUri
+                    if (!local.isNullOrBlank()) {
+                      runCatching {
+                        val uri = Uri.parse(local)
+                        context.contentResolver.delete(uri, null, null)
+                      }
+                    }
+                    scope.launch {
+                      repo.clearEpisodeDownload(ep.guid)
+                      repo.setEpisodeDownloadStatus(ep.guid, null, null)
+                      snackbarHostState.showSnackbar("Removed")
+                    }
+                  }
+                ) { Text("Remove") }
+              },
+              dismissButton = {
+                TextButton(onClick = { confirmRemove = false }) { Text("Cancel") }
+              },
+            )
+          }
+
           DownloadRow(
             ep = ep,
             status = "Saved",
             detail = detail,
             onClick = { onPlay(ep) },
             onRemove = {
-              val local = ep.localFileUri
-              if (!local.isNullOrBlank()) {
-                runCatching {
-                  val uri = Uri.parse(local)
-                  context.contentResolver.delete(uri, null, null)
-                }
-              }
-              scope.launch {
-                repo.clearEpisodeDownload(ep.guid)
-                repo.setEpisodeDownloadStatus(ep.guid, null, null)
-                snackbarHostState.showSnackbar("Removed")
-              }
+              confirmRemove = true
             },
           )
         }
