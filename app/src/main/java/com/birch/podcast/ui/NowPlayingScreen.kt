@@ -40,6 +40,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -51,11 +54,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
@@ -94,8 +99,12 @@ fun NowPlayingScreen(
   var pitchMenuOpen by remember { mutableStateOf(false) }
   var timerMenuOpen by remember { mutableStateOf(false) }
 
+  val snackbarHostState = remember { SnackbarHostState() }
+  val scope = rememberCoroutineScope()
+
   Scaffold(
     containerColor = MaterialTheme.colorScheme.surface,
+    snackbarHost = { SnackbarHost(snackbarHostState) },
     topBar = {
       TopAppBar(
         title = { Text("Now Playing") },
@@ -132,6 +141,7 @@ fun NowPlayingScreen(
               onClick = {
                 timerMenuOpen = false
                 onSetSleepTimerOff()
+                scope.launch { snackbarHostState.showSnackbar("Sleep timer off") }
               }
             )
             listOf(15, 30, 60).forEach { m ->
@@ -140,6 +150,7 @@ fun NowPlayingScreen(
                 onClick = {
                   timerMenuOpen = false
                   onSetSleepTimerMinutes(m)
+                  scope.launch { snackbarHostState.showSnackbar("Sleep timer: ${m}m") }
                 }
               )
             }
@@ -148,6 +159,7 @@ fun NowPlayingScreen(
               onClick = {
                 timerMenuOpen = false
                 onSetSleepTimerEndOfEpisode()
+                scope.launch { snackbarHostState.showSnackbar("Sleep timer: end") }
               }
             )
           }
@@ -162,6 +174,7 @@ fun NowPlayingScreen(
                 onClick = {
                   speedMenuOpen = false
                   onSetSpeed(s)
+                  scope.launch { snackbarHostState.showSnackbar("Speed: ${s}x") }
                 }
               )
             }
@@ -177,6 +190,7 @@ fun NowPlayingScreen(
                 onClick = {
                   pitchMenuOpen = false
                   onSetPitch(p)
+                  scope.launch { snackbarHostState.showSnackbar("Pitch: ${p}x") }
                 }
               )
             }
@@ -192,18 +206,30 @@ fun NowPlayingScreen(
       // Title block
       Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // Artwork (optional)
-        artworkUrl?.takeIf { it.isNotBlank() }?.let { url ->
+        val art = artworkUrl?.takeIf { it.isNotBlank() }
+        if (art != null) {
           val ctx = LocalContext.current
           // Use Fit (letterbox) instead of Crop to avoid cutting off artwork.
           AsyncImage(
-            model = ImageRequest.Builder(ctx).data(url).crossfade(true).build(),
-            contentDescription = "Artwork",
+            model = ImageRequest.Builder(ctx).data(art).crossfade(true).build(),
+            contentDescription = "Podcast artwork",
             contentScale = ContentScale.Fit,
             modifier = Modifier
               .fillMaxWidth()
               .height(280.dp)
               .clip(RoundedCornerShape(20.dp))
           )
+        } else {
+          ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+            Box(
+              modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp),
+              contentAlignment = Alignment.Center,
+            ) {
+              Text("No artwork", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+          }
         }
 
         Text(
@@ -288,20 +314,40 @@ fun NowPlayingScreen(
       ) {
         FilterChip(
           selected = false,
-          onClick = onPlayFromBeginning,
+          onClick = {
+            onPlayFromBeginning()
+            scope.launch { snackbarHostState.showSnackbar("From start") }
+          },
           label = { Text("From start") },
           leadingIcon = { Icon(Icons.Filled.Replay, contentDescription = null) },
           colors = FilterChipDefaults.filterChipColors(),
         )
         FilterChip(
           selected = false,
-          onClick = onMarkPlayed,
+          onClick = {
+            onMarkPlayed()
+            scope.launch { snackbarHostState.showSnackbar("Marked played") }
+          },
           label = { Text("Mark played") },
           leadingIcon = { Icon(Icons.Filled.Done, contentDescription = null) },
           colors = FilterChipDefaults.filterChipColors(),
         )
-        FilterChip(selected = false, onClick = onPlayNext, label = { Text("Play next") })
-        FilterChip(selected = false, onClick = onPlayLast, label = { Text("Play last") })
+        FilterChip(
+          selected = false,
+          onClick = {
+            onPlayNext()
+            scope.launch { snackbarHostState.showSnackbar("Play next") }
+          },
+          label = { Text("Play next") },
+        )
+        FilterChip(
+          selected = false,
+          onClick = {
+            onPlayLast()
+            scope.launch { snackbarHostState.showSnackbar("Play last") }
+          },
+          label = { Text("Play last") },
+        )
       }
 
       if (chapters.isNotEmpty()) {
