@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,6 +86,16 @@ fun EpisodesScreen(
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
 
+  val refreshing by vm.refreshing.collectAsState()
+  val lastError by vm.lastError.collectAsState()
+
+  LaunchedEffect(lastError) {
+    if (!lastError.isNullOrBlank()) {
+      snackbarHostState.showSnackbar(lastError!!)
+      vm.clearError()
+    }
+  }
+
   val filtered = remember(episodes, query, filter) {
     val q = query.trim()
     val searched = if (q.isBlank()) episodes
@@ -115,8 +126,15 @@ fun EpisodesScreen(
           IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
         },
         actions = {
-          IconButton(onClick = { vm.refresh(autoQueueNewest) }) {
-            Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+          IconButton(
+            onClick = { vm.refresh(autoQueueNewest) },
+            enabled = !refreshing,
+          ) {
+            if (refreshing) {
+              CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(2.dp))
+            } else {
+              Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+            }
           }
 
           IconButton(onClick = { menuOpen = true }) {
