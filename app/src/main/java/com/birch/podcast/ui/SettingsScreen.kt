@@ -207,6 +207,26 @@ fun SettingsScreen(
         singleLine = true,
         // keyboardOptions omitted
       )
+
+      Text("About", style = MaterialTheme.typography.titleMedium)
+
+      val pkg = if (android.os.Build.VERSION.SDK_INT >= 33) {
+        context.packageManager.getPackageInfo(
+          context.packageName,
+          android.content.pm.PackageManager.PackageInfoFlags.of(0),
+        )
+      } else {
+        @Suppress("DEPRECATION")
+        context.packageManager.getPackageInfo(context.packageName, 0)
+      }
+      val versionName = pkg.versionName ?: ""
+      val versionCode = if (android.os.Build.VERSION.SDK_INT >= 28) pkg.longVersionCode else @Suppress("DEPRECATION") pkg.versionCode.toLong()
+
+      Text(
+        text = "Birch v${versionName} (${versionCode})",
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
     }
   }
 }
