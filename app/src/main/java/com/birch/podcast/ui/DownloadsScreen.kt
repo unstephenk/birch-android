@@ -22,6 +22,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.DropdownMenu
@@ -59,6 +61,7 @@ fun DownloadsScreen(
   val failed by repo.observeFailedDownloads().collectAsState(initial = emptyList())
 
   var menuOpen by remember { mutableStateOf(false) }
+  val snackbarHostState = remember { SnackbarHostState() }
 
   Scaffold(
     topBar = {
@@ -80,6 +83,7 @@ fun DownloadsScreen(
               onClick = {
                 menuOpen = false
                 onCancelAllActive(downloading)
+                scope.launch { snackbarHostState.showSnackbar("Canceled ${downloading.size} download(s)") }
               },
             )
             DropdownMenuItem(
@@ -88,6 +92,7 @@ fun DownloadsScreen(
               onClick = {
                 menuOpen = false
                 failed.forEach { onRetry(it) }
+                scope.launch { snackbarHostState.showSnackbar("Retrying ${failed.size} download(s)") }
               },
             )
             DropdownMenuItem(
@@ -96,13 +101,26 @@ fun DownloadsScreen(
               onClick = {
                 menuOpen = false
                 onClearAllFailed(failed)
+                scope.launch { snackbarHostState.showSnackbar("Cleared ${failed.size} failed item(s)") }
               },
             )
           }
         }
       )
-    }
+    },
+    snackbarHost = { SnackbarHost(snackbarHostState) },
   ) { padding ->
+    val isEmptyAll = downloading.isEmpty() && saved.isEmpty() && failed.isEmpty()
+    if (isEmptyAll) {
+      EmptyState(
+        title = "No downloads",
+        subtitle = "Download an episode to listen offline.",
+        icon = Icons.Filled.Download,
+        modifier = Modifier.padding(padding),
+      )
+      return@Scaffold
+    }
+
     LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
       item {
         SectionHeader("Downloading")
@@ -128,6 +146,7 @@ fun DownloadsScreen(
                 val dm = context.getSystemService(DownloadManager::class.java)
                 if (ep.downloadId != 0L) dm?.remove(ep.downloadId)
                 repo.clearEpisodeDownload(ep.guid)
+                snackbarHostState.showSnackbar("Canceled")
               }
             },
           )
@@ -164,6 +183,7 @@ fun DownloadsScreen(
               scope.launch {
                 repo.clearEpisodeDownload(ep.guid)
                 repo.setEpisodeDownloadStatus(ep.guid, null, null)
+                snackbarHostState.showSnackbar("Removed")
               }
             },
           )
@@ -190,11 +210,15 @@ fun DownloadsScreen(
             ep = ep,
             status = "Failed",
             detail = detail,
-            onClick = { onRetry(ep) },
+            onClick = {
+              onRetry(ep)
+              scope.launch { snackbarHostState.showSnackbar("Retrying…") }
+            },
             onRemove = {
               scope.launch {
                 repo.setEpisodeDownloadStatus(ep.guid, null, null)
                 repo.clearEpisodeDownload(ep.guid)
+                snackbarHostState.showSnackbar("Cleared")
               }
             },
           )
