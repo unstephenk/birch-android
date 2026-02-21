@@ -105,13 +105,12 @@ fun QueueScreen(
     }
 
     if (queue.isEmpty()) {
-      Column(
-        modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-      ) {
-        Text("Queue is empty")
-      }
+      EmptyState(
+        title = "Queue is empty",
+        subtitle = "Add episodes from any podcast to build a lineup.",
+        icon = Icons.Filled.ClearAll,
+        modifier = Modifier.padding(padding),
+      )
     } else {
       val reorderState = rememberReorderableLazyListState(
         onMove = { from, to -> vm.moveToIndex(from.index, to.index) }
