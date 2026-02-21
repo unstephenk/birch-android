@@ -17,6 +17,10 @@ class AddFeedViewModel(
   private val _error = MutableStateFlow<String?>(null)
   val error: StateFlow<String?> = _error
 
+  fun clearError() {
+    _error.value = null
+  }
+
   fun add(feedUrl: String, onSuccess: (Long) -> Unit) {
     _error.value = null
     _busy.value = true

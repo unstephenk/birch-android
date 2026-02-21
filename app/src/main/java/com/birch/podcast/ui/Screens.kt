@@ -38,6 +38,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.DarkMode
@@ -402,6 +403,17 @@ fun AddFeedScreen(
   var url by remember { mutableStateOf("") }
   val busy by vm.busy.collectAsState()
   val err by vm.error.collectAsState()
+  val snackbarHostState = remember { SnackbarHostState() }
+
+  LaunchedEffect(err) {
+    if (!err.isNullOrBlank()) {
+      snackbarHostState.showSnackbar(
+        message = err!!,
+        duration = SnackbarDuration.Long,
+      )
+      vm.clearError()
+    }
+  }
 
   Scaffold(
     topBar = {
@@ -411,7 +423,8 @@ fun AddFeedScreen(
           IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
         }
       )
-    }
+    },
+    snackbarHost = { SnackbarHost(snackbarHostState) },
   ) { padding ->
     val scroll = rememberScrollState()
 
@@ -461,10 +474,7 @@ fun AddFeedScreen(
         }
       }
 
-      if (err != null) {
-        Spacer(Modifier.padding(6.dp))
-        Text("Error: $err", color = MaterialTheme.colorScheme.error)
-      }
+      // Error is now shown via Snackbar.
 
       Spacer(Modifier.padding(12.dp))
       Button(
