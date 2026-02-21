@@ -1,9 +1,7 @@
 package com.birch.podcast.ui
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,7 +21,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -51,24 +48,20 @@ fun HistoryScreen(
       )
     }
   ) { padding ->
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
-      if (items.isEmpty()) {
-        item {
-          Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-          ) {
-            Icon(Icons.Filled.History, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Nothing played yet", color = MaterialTheme.colorScheme.onSurfaceVariant)
-          }
-        }
-      } else {
+    if (items.isEmpty()) {
+      EmptyState(
+        title = "Nothing played yet",
+        subtitle = "Start an episode and it’ll show up here.",
+        icon = Icons.Filled.History,
+        modifier = Modifier.padding(padding),
+      )
+    } else {
+      LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
         items(items, key = { it.id }) { h ->
           HistoryRow(h = h, onClick = { onPlay(h.episodeGuid) })
         }
+        item { Spacer(Modifier.padding(12.dp)) }
       }
-      item { Spacer(Modifier.padding(12.dp)) }
     }
   }
 }
