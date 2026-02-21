@@ -485,7 +485,14 @@ fun AddFeedScreen(
         onValueChange = { url = it },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("https://example.com/feed.xml") }
+        placeholder = { Text("https://example.com/feed.xml") },
+        trailingIcon = {
+          if (url.isNotBlank()) {
+            IconButton(onClick = { url = "" }) {
+              Icon(Icons.Filled.Close, contentDescription = "Clear")
+            }
+          }
+        },
       )
 
       Spacer(Modifier.padding(12.dp))

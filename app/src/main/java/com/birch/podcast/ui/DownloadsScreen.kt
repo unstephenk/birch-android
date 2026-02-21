@@ -123,7 +123,7 @@ fun DownloadsScreen(
 
     LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
       item {
-        SectionHeader("Downloading")
+        SectionHeader("Downloading", downloading.size)
       }
       if (downloading.isEmpty()) {
         item { EmptyRow("No active downloads") }
@@ -154,7 +154,7 @@ fun DownloadsScreen(
       }
 
       item {
-        SectionHeader("Saved")
+        SectionHeader("Saved", saved.size)
       }
       if (saved.isEmpty()) {
         item { EmptyRow("No saved episodes") }
@@ -191,7 +191,7 @@ fun DownloadsScreen(
       }
 
       item {
-        SectionHeader("Failed")
+        SectionHeader("Failed", failed.size)
       }
       if (failed.isEmpty()) {
         item { EmptyRow("No failed downloads") }
@@ -231,9 +231,10 @@ fun DownloadsScreen(
 }
 
 @Composable
-private fun SectionHeader(title: String) {
+private fun SectionHeader(title: String, count: Int) {
+  val label = if (count > 0) "$title ($count)" else title
   Text(
-    title,
+    label,
     style = MaterialTheme.typography.titleSmall,
     color = MaterialTheme.colorScheme.onSurfaceVariant,
     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
