@@ -49,6 +49,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ViewList
 import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.window.PopupProperties
@@ -200,6 +201,13 @@ fun LibraryScreen(
             .padding(horizontal = Dimens.screenH, vertical = Dimens.s12),
           label = { Text("Search podcasts") },
           singleLine = true,
+          trailingIcon = {
+            if (query.isNotBlank()) {
+              IconButton(onClick = { query = "" }) {
+                Icon(Icons.Filled.Close, contentDescription = "Clear")
+              }
+            }
+          },
         )
 
         if (filtered.isEmpty()) {

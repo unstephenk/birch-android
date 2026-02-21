@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -268,6 +269,13 @@ fun EpisodesScreen(
         modifier = Modifier.fillMaxWidth().padding(12.dp),
         label = { Text("Search episodes") },
         singleLine = true,
+        trailingIcon = {
+          if (query.isNotBlank()) {
+            IconButton(onClick = { query = "" }) {
+              Icon(Icons.Filled.Close, contentDescription = "Clear")
+            }
+          }
+        },
       )
 
       Row(
