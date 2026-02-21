@@ -30,6 +30,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,12 +46,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.birch.podcast.data.db.QueueItemEntity
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,8 +65,11 @@ fun QueueScreen(
   val queue by vm.queue.collectAsState()
   var confirmClear by remember { mutableStateOf(false) }
   var menuOpen by remember { mutableStateOf(false) }
+  val snackbarHostState = remember { SnackbarHostState() }
+  val scope = rememberCoroutineScope()
 
   Scaffold(
+    snackbarHost = { SnackbarHost(snackbarHostState) },
     topBar = {
       TopAppBar(
         title = { Text("Queue") },
@@ -97,6 +104,7 @@ fun QueueScreen(
             onClick = {
               confirmClear = false
               vm.clear()
+              scope.launch { snackbarHostState.showSnackbar("Queue cleared") }
             }
           ) { Text("Clear") }
         },
@@ -130,6 +138,7 @@ fun QueueScreen(
               confirmValueChange = { v ->
                 if (v != androidx.compose.material3.SwipeToDismissBoxValue.Settled) {
                   vm.remove(item.id)
+                  scope.launch { snackbarHostState.showSnackbar("Removed") }
                   true
                 } else {
                   false

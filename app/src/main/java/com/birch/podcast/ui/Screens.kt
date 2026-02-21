@@ -89,6 +89,7 @@ fun LibraryScreen(
   val lastError by vm.lastError.collectAsState()
   val snackbarHostState = remember { SnackbarHostState() }
   val scope = rememberCoroutineScope()
+  val ctx = LocalContext.current
 
   LaunchedEffect(lastError) {
     if (!lastError.isNullOrBlank()) {
@@ -102,6 +103,17 @@ fun LibraryScreen(
   var sortMenuOpen by remember { mutableStateOf(false) }
   var sortMode by remember { mutableStateOf("Recent") }
   var gridMode by remember { mutableStateOf(false) }
+
+  // Restore persisted library UI preferences.
+  LaunchedEffect(Unit) {
+    runCatching { gridMode = LibraryPrefs.isGrid(ctx) }
+    runCatching {
+      sortMode = when (LibraryPrefs.sortMode(ctx)) {
+        LibraryPrefs.SortMode.AZ -> "A-Z"
+        LibraryPrefs.SortMode.RECENT -> "Recent"
+      }
+    }
+  }
 
   val filtered = remember(podcasts, query, sortMode) {
     val q = query.trim()
@@ -132,7 +144,12 @@ fun LibraryScreen(
             Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
           }
 
-          IconButton(onClick = { gridMode = !gridMode }) {
+          IconButton(
+            onClick = {
+              gridMode = !gridMode
+              scope.launch { LibraryPrefs.setGrid(ctx, gridMode) }
+            }
+          ) {
             Icon(
               if (gridMode) Icons.Filled.ViewList else Icons.Filled.GridView,
               contentDescription = if (gridMode) "List view" else "Grid view",
@@ -141,11 +158,19 @@ fun LibraryScreen(
           DropdownMenu(expanded = sortMenuOpen, onDismissRequest = { sortMenuOpen = false }) {
             DropdownMenuItem(
               text = { Text("Recent") },
-              onClick = { sortMenuOpen = false; sortMode = "Recent" },
+              onClick = {
+                sortMenuOpen = false
+                sortMode = "Recent"
+                scope.launch { LibraryPrefs.setSortMode(ctx, LibraryPrefs.SortMode.RECENT) }
+              },
             )
             DropdownMenuItem(
               text = { Text("A-Z") },
-              onClick = { sortMenuOpen = false; sortMode = "A-Z" },
+              onClick = {
+                sortMenuOpen = false
+                sortMode = "A-Z"
+                scope.launch { LibraryPrefs.setSortMode(ctx, LibraryPrefs.SortMode.AZ) }
+              },
             )
           }
 
@@ -176,6 +201,7 @@ fun LibraryScreen(
             onClick = {
               confirmUnsub = null
               vm.unsubscribe(p)
+              scope.launch { snackbarHostState.showSnackbar("Unsubscribed") }
             }
           ) { Text("Unsubscribe") }
         },
