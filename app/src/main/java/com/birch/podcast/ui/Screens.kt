@@ -33,6 +33,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -55,6 +57,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,6 +68,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.birch.podcast.data.db.PodcastEntity
 import com.birch.podcast.theme.Dimens
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
@@ -79,6 +83,18 @@ fun LibraryScreen(
   onOpenPodcast: (Long) -> Unit,
 ) {
   val podcasts by vm.podcasts.collectAsState()
+  val refreshingPodcastId by vm.refreshingPodcastId.collectAsState()
+  val lastError by vm.lastError.collectAsState()
+  val snackbarHostState = remember { SnackbarHostState() }
+  val scope = rememberCoroutineScope()
+
+  LaunchedEffect(lastError) {
+    if (!lastError.isNullOrBlank()) {
+      snackbarHostState.showSnackbar(lastError!!)
+      vm.clearError()
+    }
+  }
+
   var confirmUnsub by remember { mutableStateOf<PodcastEntity?>(null) }
   var query by remember { mutableStateOf("") }
   var sortMenuOpen by remember { mutableStateOf(false) }
@@ -145,7 +161,8 @@ fun LibraryScreen(
           }
         }
       )
-    }
+    },
+    snackbarHost = { SnackbarHost(snackbarHostState) },
   ) { padding ->
     confirmUnsub?.let { p ->
       AlertDialog(
@@ -164,15 +181,14 @@ fun LibraryScreen(
       )
     }
     if (podcasts.isEmpty()) {
-      Column(
-        modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-      ) {
-        Text("No podcasts yet")
-        Spacer(Modifier.padding(6.dp))
-        Button(onClick = onAdd) { Text("Add a feed") }
-      }
+      EmptyState(
+        title = "No podcasts yet",
+        subtitle = "Add an RSS feed to get started.",
+        icon = Icons.Filled.Add,
+        actionLabel = "Add a feed",
+        onAction = onAdd,
+        modifier = Modifier.padding(padding),
+      )
     } else {
       Column(modifier = Modifier.fillMaxSize().padding(padding)) {
         OutlinedTextField(
@@ -186,13 +202,10 @@ fun LibraryScreen(
         )
 
         if (filtered.isEmpty()) {
-          Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally,
-          ) {
-            Text("No matches")
-          }
+          EmptyState(
+            title = "No matches",
+            subtitle = "Try a different search.",
+          )
         } else {
           if (gridMode) {
             LazyVerticalGrid(
@@ -214,8 +227,12 @@ fun LibraryScreen(
                 PodcastRow(
                   podcast = p,
                   vm = vm,
+                  refreshing = refreshingPodcastId == p.id,
                   onOpen = { onOpenPodcast(p.id) },
-                  onRefresh = { vm.refresh(p) },
+                  onRefresh = {
+                    vm.refresh(p)
+                    scope.launch { snackbarHostState.showSnackbar("Refreshing…") }
+                  },
                   onUnsubscribe = { confirmUnsub = p },
                 )
               }
@@ -232,6 +249,7 @@ fun LibraryScreen(
 private fun PodcastRow(
   podcast: PodcastEntity,
   vm: LibraryViewModel,
+  refreshing: Boolean,
   onOpen: () -> Unit,
   onRefresh: () -> Unit,
   onUnsubscribe: () -> Unit,
@@ -306,8 +324,12 @@ private fun PodcastRow(
           }
         }
 
-        IconButton(onClick = onRefresh) {
-          Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+        IconButton(onClick = onRefresh, enabled = !refreshing) {
+          if (refreshing) {
+            CircularProgressIndicator(strokeWidth = 2.dp, modifier = Modifier.padding(2.dp))
+          } else {
+            Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+          }
         }
       }
 
