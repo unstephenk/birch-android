@@ -138,18 +138,36 @@ fun DownloadsScreen(
             rem?.let { "Remaining: $it" },
           ).joinToString(" • ").ifBlank { null }
 
+          var confirmCancel by remember(ep.id) { mutableStateOf(false) }
+          if (confirmCancel) {
+            AlertDialog(
+              onDismissRequest = { confirmCancel = false },
+              title = { Text("Cancel download?") },
+              text = { Text("This stops the active download.") },
+              confirmButton = {
+                TextButton(
+                  onClick = {
+                    confirmCancel = false
+                    scope.launch {
+                      val dm = context.getSystemService(DownloadManager::class.java)
+                      if (ep.downloadId != 0L) dm?.remove(ep.downloadId)
+                      repo.clearEpisodeDownload(ep.guid)
+                      snackbarHostState.showSnackbar("Canceled")
+                    }
+                  }
+                ) { Text("Cancel") }
+              },
+              dismissButton = { TextButton(onClick = { confirmCancel = false }) { Text("Keep") } },
+            )
+          }
+
           DownloadRow(
             ep = ep,
             status = "Downloading",
             detail = detail,
             onClick = { onPlay(ep) },
             onRemove = {
-              scope.launch {
-                val dm = context.getSystemService(DownloadManager::class.java)
-                if (ep.downloadId != 0L) dm?.remove(ep.downloadId)
-                repo.clearEpisodeDownload(ep.guid)
-                snackbarHostState.showSnackbar("Canceled")
-              }
+              confirmCancel = true
             },
           )
         }

@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 
@@ -11,6 +12,7 @@ private val Context.dataStore by preferencesDataStore(name = "settings")
 
 private val KEY_LIBRARY_GRID = booleanPreferencesKey("library_grid")
 private val KEY_LIBRARY_SORT = intPreferencesKey("library_sort")
+private val KEY_LIBRARY_QUERY = stringPreferencesKey("library_query")
 
 /** Keep the surface tiny: just enough to persist library UI choices. */
 object LibraryPrefs {
@@ -42,5 +44,14 @@ object LibraryPrefs {
 
   suspend fun setSortMode(context: Context, mode: SortMode) {
     context.dataStore.edit { it[KEY_LIBRARY_SORT] = mode.value }
+  }
+
+  suspend fun query(context: Context, default: String = ""): String {
+    val prefs = context.dataStore.data.first()
+    return prefs[KEY_LIBRARY_QUERY] ?: default
+  }
+
+  suspend fun setQuery(context: Context, query: String) {
+    context.dataStore.edit { it[KEY_LIBRARY_QUERY] = query }
   }
 }

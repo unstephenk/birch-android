@@ -26,6 +26,10 @@ class PodcastRepository(
     db.history().clearAll()
   }
 
+  suspend fun deleteHistoryItem(id: Long) {
+    db.history().deleteById(id)
+  }
+
   suspend fun addPodcast(feedUrl: String): Long {
     // Fetch and parse first so we can save the real title.
     val parsed = fetchAndParse(feedUrl)

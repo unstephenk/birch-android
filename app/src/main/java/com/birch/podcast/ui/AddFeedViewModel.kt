@@ -26,7 +26,9 @@ class AddFeedViewModel(
     _busy.value = true
     viewModelScope.launch {
       try {
-        val id = repo.addPodcast(feedUrl.trim())
+        val raw = feedUrl.trim()
+        val normalized = if (raw.startsWith("http://") || raw.startsWith("https://")) raw else "https://$raw"
+        val id = repo.addPodcast(normalized)
         onSuccess(id)
       } catch (t: Throwable) {
         _error.value = t.message ?: t.toString()

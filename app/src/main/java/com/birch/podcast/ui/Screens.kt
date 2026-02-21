@@ -101,6 +101,11 @@ fun LibraryScreen(
 
   var confirmUnsub by remember { mutableStateOf<PodcastEntity?>(null) }
   var query by remember { mutableStateOf("") }
+
+  LaunchedEffect(Unit) {
+    // best-effort: restore last library search
+    runCatching { query = LibraryPrefs.query(ctx) }
+  }
   var sortMenuOpen by remember { mutableStateOf(false) }
   var sortMode by remember { mutableStateOf("Recent") }
   var gridMode by remember { mutableStateOf(false) }
@@ -228,7 +233,10 @@ fun LibraryScreen(
       Column(modifier = Modifier.fillMaxSize().padding(padding)) {
         OutlinedTextField(
           value = query,
-          onValueChange = { query = it },
+          onValueChange = {
+            query = it
+            scope.launch { LibraryPrefs.setQuery(ctx, it) }
+          },
           modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = Dimens.screenH, vertical = Dimens.s12),
@@ -236,7 +244,12 @@ fun LibraryScreen(
           singleLine = true,
           trailingIcon = {
             if (query.isNotBlank()) {
-              IconButton(onClick = { query = "" }) {
+              IconButton(
+                onClick = {
+                  query = ""
+                  scope.launch { LibraryPrefs.setQuery(ctx, "") }
+                }
+              ) {
                 Icon(Icons.Filled.Close, contentDescription = "Clear")
               }
             }

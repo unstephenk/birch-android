@@ -73,7 +73,7 @@ fun EpisodesScreen(
 ) {
   val episodes by vm.episodes.collectAsState()
   val context = LocalContext.current
-  var query by remember { mutableStateOf("") }
+  var query by remember { mutableStateOf(EpisodesPrefs.episodeQueryForPodcast(context, podcastId, default = "")) }
   var hidePlayed by remember { mutableStateOf(EpisodesPrefs.hidePlayed(context, default = false)) }
   var hidePlayedThisPodcast by remember { mutableStateOf(EpisodesPrefs.hidePlayedForPodcast(context, podcastId, default = false)) }
   val effectiveHidePlayed = hidePlayed || hidePlayedThisPodcast
@@ -273,7 +273,10 @@ fun EpisodesScreen(
     Column(modifier = Modifier.fillMaxSize().padding(padding)) {
       OutlinedTextField(
         value = query,
-        onValueChange = { query = it },
+        onValueChange = {
+          query = it
+          EpisodesPrefs.setEpisodeQueryForPodcast(context, podcastId, it)
+        },
         modifier = Modifier.fillMaxWidth().padding(12.dp),
         label = { Text("Search episodes") },
         singleLine = true,
