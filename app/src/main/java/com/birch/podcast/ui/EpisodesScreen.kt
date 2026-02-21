@@ -265,47 +265,62 @@ fun EpisodesScreen(
         }
       }
 
-      LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(filtered, key = { it.id }) { ep ->
-          Column {
-            EpisodeListRow(
-              ep = ep,
-              onPlay = { onPlay(ep) },
-              onAddToQueue = {
-                onAddToQueue(ep)
-                scope.launch {
-                  snackbarHostState.showSnackbar("Added to queue")
-                }
-              },
-              onPlayNext = {
-                onPlayNext(ep)
-                scope.launch { snackbarHostState.showSnackbar("Added to play next") }
-              },
-              onPlayLast = {
-                onPlayLast(ep)
-                scope.launch { snackbarHostState.showSnackbar("Added to play last") }
-              },
-              onDownload = {
-                onDownload(ep)
-                scope.launch {
-                  snackbarHostState.showSnackbar("Download started")
-                }
-              },
-              onRemoveDownload = {
-                onRemoveDownload(ep)
-                scope.launch {
-                  snackbarHostState.showSnackbar("Download removed")
-                }
-              },
-              onTogglePlayed = {
-                onTogglePlayed(ep)
-                scope.launch {
-                  snackbarHostState.showSnackbar(if (ep.completed == 1) "Marked unplayed" else "Marked played")
-                }
-              },
-              downloadProgress = { downloadProgress(ep) },
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+      if (episodes.isEmpty()) {
+        EmptyState(
+          title = "No episodes yet",
+          subtitle = "Pull to refresh (or tap refresh) to fetch the feed.",
+          icon = Icons.Filled.Refresh,
+          actionLabel = "Refresh",
+          onAction = { vm.refresh(autoQueueNewest) },
+        )
+      } else if (filtered.isEmpty()) {
+        EmptyState(
+          title = "No matches",
+          subtitle = "Try a different search or filter.",
+        )
+      } else {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+          items(filtered, key = { it.id }) { ep ->
+            Column {
+              EpisodeListRow(
+                ep = ep,
+                onPlay = { onPlay(ep) },
+                onAddToQueue = {
+                  onAddToQueue(ep)
+                  scope.launch {
+                    snackbarHostState.showSnackbar("Added to queue")
+                  }
+                },
+                onPlayNext = {
+                  onPlayNext(ep)
+                  scope.launch { snackbarHostState.showSnackbar("Added to play next") }
+                },
+                onPlayLast = {
+                  onPlayLast(ep)
+                  scope.launch { snackbarHostState.showSnackbar("Added to play last") }
+                },
+                onDownload = {
+                  onDownload(ep)
+                  scope.launch {
+                    snackbarHostState.showSnackbar("Download started")
+                  }
+                },
+                onRemoveDownload = {
+                  onRemoveDownload(ep)
+                  scope.launch {
+                    snackbarHostState.showSnackbar("Download removed")
+                  }
+                },
+                onTogglePlayed = {
+                  onTogglePlayed(ep)
+                  scope.launch {
+                    snackbarHostState.showSnackbar(if (ep.completed == 1) "Marked unplayed" else "Marked played")
+                  }
+                },
+                downloadProgress = { downloadProgress(ep) },
+              )
+              HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f))
+            }
           }
         }
       }
