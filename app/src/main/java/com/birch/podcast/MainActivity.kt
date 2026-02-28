@@ -1008,7 +1008,13 @@ private fun BirchApp() {
             vm = vm,
             onBack = { nav.popBackStack() },
             onPlayNow = { item ->
-              playEpisode(item.title, item.episodeGuid, item.audioUrl)
+              val current = controller?.currentMediaItem?.mediaId
+              if (current == item.episodeGuid) {
+                nav.navigate("nowplaying")
+              } else {
+                playEpisode(item.title, item.episodeGuid, item.audioUrl)
+                nav.navigate("nowplaying")
+              }
             }
           )
         }
@@ -1017,7 +1023,15 @@ private fun BirchApp() {
           DownloadsScreen(
             repo = repo,
             onBack = { nav.popBackStack() },
-            onPlay = { ep -> playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId) },
+            onPlay = { ep ->
+              val current = controller?.currentMediaItem?.mediaId
+              if (current == ep.guid) {
+                nav.navigate("nowplaying")
+              } else {
+                playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId)
+                nav.navigate("nowplaying")
+              }
+            },
             onRetry = { ep ->
               // Clear failure state then re-enqueue.
               scope.launch { repo.setEpisodeDownloadStatus(ep.guid, null, null) }
