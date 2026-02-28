@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -60,6 +61,8 @@ fun EpisodesScreen(
   podcastId: Long,
   onBack: () -> Unit,
   onPlay: (EpisodeEntity) -> Unit,
+  showNowPlaying: Boolean,
+  onOpenNowPlaying: () -> Unit,
   onAddToQueue: (EpisodeEntity) -> Unit,
   onDownload: (EpisodeEntity) -> Unit,
   onRemoveDownload: (EpisodeEntity) -> Unit,
@@ -115,6 +118,12 @@ fun EpisodesScreen(
           IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
         },
         actions = {
+          if (showNowPlaying) {
+            IconButton(onClick = onOpenNowPlaying) {
+              Icon(Icons.Filled.PlayArrow, contentDescription = "Now playing")
+            }
+          }
+
           IconButton(onClick = { vm.refresh(autoQueueNewest) }) {
             Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
           }

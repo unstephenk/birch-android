@@ -552,6 +552,16 @@ private fun BirchApp() {
   fun playEpisode(title: String, guid: String, audioUrl: String, podcastId: Long? = null) {
     val c = controller ?: return
 
+    // If the user taps the currently-loaded episode, don't restart playback from 0.
+    // Just resume (if paused) and let the UI navigate to Now Playing.
+    val currentGuid = c.currentMediaItem?.mediaId
+    if (currentGuid == guid) {
+      nowGuid = guid
+      nowTitle = title
+      if (!c.isPlaying) c.play()
+      return
+    }
+
     nowGuid = guid
     nowTitle = title
 
@@ -778,8 +788,17 @@ private fun BirchApp() {
             podcastId = podcastId,
             onBack = { nav.popBackStack() },
             onPlay = { ep ->
-              playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId)
+              // If they're tapping the currently-loaded episode, open Now Playing instead of restarting.
+              val current = controller?.currentMediaItem?.mediaId
+              if (current == ep.guid) {
+                nav.navigate("nowplaying")
+              } else {
+                playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId)
+                nav.navigate("nowplaying")
+              }
             },
+            showNowPlaying = !nowTitle.isNullOrBlank(),
+            onOpenNowPlaying = { nav.navigate("nowplaying") },
             onAddToQueue = { ep ->
               scope.launch { repo.enqueue(ep.title, ep.guid, ep.audioUrl) }
             },
