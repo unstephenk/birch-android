@@ -14,6 +14,7 @@ import androidx.media3.session.SessionResult
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
 
+@androidx.media3.common.util.UnstableApi
 class PlaybackService : MediaSessionService() {
 
   private var player: ExoPlayer? = null
