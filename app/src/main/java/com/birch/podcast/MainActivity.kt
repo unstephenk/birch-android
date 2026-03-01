@@ -550,7 +550,13 @@ private fun BirchApp() {
     }
   }
 
-  fun playEpisode(title: String, guid: String, audioUrl: String, podcastId: Long? = null) {
+  fun playEpisode(
+    title: String,
+    guid: String,
+    audioUrl: String,
+    podcastId: Long? = null,
+    ignoreSavedPosition: Boolean = false,
+  ) {
     val c = controller ?: return
 
     // If the user taps the currently-loaded episode, don't restart playback from 0.
@@ -627,8 +633,8 @@ private fun BirchApp() {
       }
 
       // Resume (best-effort) w/ intro trim
-      val resumeMs = (saved?.lastPositionMs ?: 0L)
-      val wasCompleted = (saved?.completed ?: 0) == 1
+      val resumeMs = if (ignoreSavedPosition) 0L else (saved?.lastPositionMs ?: 0L)
+      val wasCompleted = if (ignoreSavedPosition) false else (saved?.completed ?: 0) == 1
       val introMs = nowTrimIntroMs
       val initialSeekMs = if (!wasCompleted) maxOf(resumeMs, introMs) else 0L
       if (!wasCompleted && initialSeekMs > 5_000) {
@@ -804,6 +810,19 @@ private fun BirchApp() {
                 playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId)
                 nav.navigate("nowplaying")
               }
+            },
+            onRestart = { ep ->
+              scope.launch {
+                // Clear saved position then start from the beginning (respects intro trim).
+                repo.updateEpisodePlayback(
+                  guid = ep.guid,
+                  positionMs = 0L,
+                  durationMs = ep.durationMs,
+                  completed = false,
+                )
+              }
+              playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId, ignoreSavedPosition = true)
+              nav.navigate("nowplaying")
             },
             showNowPlaying = !nowTitle.isNullOrBlank(),
             onOpenNowPlaying = { nav.navigate("nowplaying") },

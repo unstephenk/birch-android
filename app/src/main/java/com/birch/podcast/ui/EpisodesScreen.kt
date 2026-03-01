@@ -61,6 +61,7 @@ fun EpisodesScreen(
   podcastId: Long,
   onBack: () -> Unit,
   onPlay: (EpisodeEntity) -> Unit,
+  onRestart: (EpisodeEntity) -> Unit,
   showNowPlaying: Boolean,
   onOpenNowPlaying: () -> Unit,
   onAddToQueue: (EpisodeEntity) -> Unit,
@@ -281,6 +282,7 @@ fun EpisodesScreen(
             EpisodeListRow(
               ep = ep,
               onPlay = { onPlay(ep) },
+              onRestart = { onRestart(ep) },
               onAddToQueue = {
                 onAddToQueue(ep)
                 scope.launch {
@@ -329,6 +331,7 @@ fun EpisodesScreen(
 private fun EpisodeListRow(
   ep: EpisodeEntity,
   onPlay: () -> Unit,
+  onRestart: () -> Unit,
   onAddToQueue: () -> Unit,
   onPlayNext: () -> Unit,
   onPlayLast: () -> Unit,
@@ -395,6 +398,14 @@ private fun EpisodeListRow(
             text = { Text("Add to queue") },
             onClick = { rowMenuOpen = false; onAddToQueue() },
           )
+
+          if (ep.lastPositionMs > 5_000) {
+            DropdownMenuItem(
+              text = { Text("Restart from beginning") },
+              onClick = { rowMenuOpen = false; onRestart() },
+            )
+          }
+
           DropdownMenuItem(
             text = { Text(if (ep.completed == 1) "Mark unplayed" else "Mark played") },
             onClick = { rowMenuOpen = false; onTogglePlayed() },
