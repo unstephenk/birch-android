@@ -98,6 +98,7 @@ fun EpisodesScreen(
     val base0 = when (filter) {
       "Unplayed" -> searched.filter { it.completed == 0 }
       "Downloaded" -> searched.filter { !it.localFileUri.isNullOrBlank() }
+      "In progress" -> searched.filter { it.completed == 0 && it.lastPositionMs > 0 && it.durationMs > 0 }
       else -> searched
     }
 
@@ -265,7 +266,7 @@ fun EpisodesScreen(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
       ) {
-        listOf("All", "Unplayed", "Downloaded").forEach { label ->
+        listOf("All", "Unplayed", "Downloaded", "In progress").forEach { label ->
           FilterChip(
             selected = filter == label,
             onClick = { filter = label },
@@ -473,6 +474,14 @@ private fun EpisodeListRow(
     val showProgress = ep.durationMs > 0 && ep.lastPositionMs > 0 && ep.completed == 0
     if (showProgress) {
       Spacer(Modifier.padding(2.dp))
+
+      // "Resume" hint (quick scan for partially-played episodes)
+      Text(
+        text = "Resume at ${fmtDurationMs(ep.lastPositionMs)}",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+
       val v = (ep.lastPositionMs.toFloat() / ep.durationMs.toFloat()).coerceIn(0f, 1f)
       LinearProgressIndicator(progress = { v }, modifier = Modifier.fillMaxWidth())
     }
