@@ -121,11 +121,6 @@ class PlaybackService : MediaSessionService() {
       })
       .build().also { session ->
         // Notification / lockscreen buttons.
-        val speed = CommandButton.Builder()
-          .setDisplayName("1x")
-          .setIconResId(android.R.drawable.ic_menu_manage) // placeholder icon; refine later
-          .setSessionCommand(androidx.media3.session.SessionCommand(PlaybackCommands.ACTION_CYCLE_SPEED, Bundle.EMPTY))
-          .build()
         val rewind = CommandButton.Builder()
           .setDisplayName("Rewind")
           .setIconResId(android.R.drawable.ic_media_rew)
@@ -136,14 +131,11 @@ class PlaybackService : MediaSessionService() {
           .setIconResId(android.R.drawable.ic_media_ff)
           .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
           .build()
-        val favorite = CommandButton.Builder()
-          .setDisplayName("Favorite")
-          .setIconResId(android.R.drawable.btn_star_big_off)
-          .setSessionCommand(androidx.media3.session.SessionCommand(PlaybackCommands.ACTION_TOGGLE_FAVORITE_EPISODE, Bundle.EMPTY))
-          .build()
 
-        // Order: Speed • Rewind • Play/Pause (system) • Forward • Favorite
-        session.setCustomLayout(listOf(speed, rewind, fwd, favorite))
+        // Keep notification controls simple and reliable across devices:
+        // Rewind • Play/Pause (system) • Forward
+        // (Speed/Favorite can be reintroduced later if they don't displace Play/Pause.)
+        session.setCustomLayout(listOf(rewind, fwd))
       }
 
     // Media3 default notification (transport controls + BT/lockscreen)
