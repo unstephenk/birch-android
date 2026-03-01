@@ -705,6 +705,7 @@ private fun BirchApp() {
         if (showMiniPlayer && !nowTitle.isNullOrBlank()) {
           MiniPlayerBar(
             title = nowTitle,
+            subtitle = nowPodcastTitle,
             isPlaying = isPlaying,
             positionMs = positionMs,
             durationMs = durationMs,
@@ -749,6 +750,8 @@ private fun BirchApp() {
                 themePrefs.setThemeMode(next)
               }
             },
+            showNowPlaying = !nowTitle.isNullOrBlank(),
+            onOpenNowPlaying = { nav.navigate("nowplaying") },
             onAdd = { nav.navigate("add") },
             onOpenDownloads = { nav.navigate("downloads") },
             onOpenHistory = { nav.navigate("history") },
@@ -1073,6 +1076,12 @@ private fun BirchApp() {
             onBack = { nav.popBackStack() },
             onPlay = { guid ->
               scope.launch {
+                val current = controller?.currentMediaItem?.mediaId
+                if (current == guid) {
+                  nav.navigate("nowplaying")
+                  return@launch
+                }
+
                 val ep = repo.getEpisodeByGuid(guid) ?: return@launch
                 playEpisode(ep.title, ep.guid, ep.audioUrl, ep.podcastId)
                 nav.navigate("nowplaying")
@@ -1088,6 +1097,7 @@ private fun BirchApp() {
 @Composable
 private fun MiniPlayerBar(
   title: String?,
+  subtitle: String?,
   isPlaying: Boolean,
   positionMs: Long,
   durationMs: Long,
@@ -1103,12 +1113,24 @@ private fun MiniPlayerBar(
     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
   ) {
     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp)) {
+      // Episode title
       Text(
         text = title ?: "Now playing",
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         style = MaterialTheme.typography.bodyMedium
       )
+
+      // Podcast title (optional)
+      if (!subtitle.isNullOrBlank()) {
+        Text(
+          text = subtitle,
+          maxLines = 1,
+          overflow = TextOverflow.Ellipsis,
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
 
       if (durationMs > 0) {
         val value = (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)

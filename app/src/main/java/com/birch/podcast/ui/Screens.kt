@@ -35,6 +35,7 @@ import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -59,6 +60,8 @@ fun LibraryScreen(
   vm: LibraryViewModel,
   darkTheme: Boolean,
   onToggleTheme: () -> Unit,
+  showNowPlaying: Boolean,
+  onOpenNowPlaying: () -> Unit,
   onAdd: () -> Unit,
   onOpenDownloads: () -> Unit,
   onOpenHistory: () -> Unit,
@@ -90,6 +93,12 @@ fun LibraryScreen(
       TopAppBar(
         title = { Text("Library") },
         actions = {
+          if (showNowPlaying) {
+            IconButton(onClick = onOpenNowPlaying) {
+              Icon(Icons.Filled.PlayArrow, contentDescription = "Now playing")
+            }
+          }
+
           IconButton(onClick = onToggleTheme) {
             Icon(
               if (darkTheme) Icons.Filled.DarkMode else Icons.Filled.LightMode,
