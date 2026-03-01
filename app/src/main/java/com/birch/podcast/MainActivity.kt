@@ -752,6 +752,8 @@ private fun BirchApp() {
               }
             },
             showNowPlaying = !nowTitle.isNullOrBlank(),
+            nowPlayingTitle = nowTitle,
+            nowPlayingSubtitle = nowPodcastTitle,
             onOpenNowPlaying = { nav.navigate("nowplaying") },
             onAdd = { nav.navigate("add") },
             onOpenDownloads = { nav.navigate("downloads") },
