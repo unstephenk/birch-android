@@ -3,6 +3,7 @@ package com.birch.podcast
 import android.app.DownloadManager
 import android.content.BroadcastReceiver
 import android.content.ComponentName
+import android.content.Context
 import android.content.IntentFilter
 import android.database.Cursor
 import android.net.Uri
@@ -423,10 +424,59 @@ private fun BirchApp() {
       // best-effort
     }
 
+    val prefs = context.getSharedPreferences("birch_nowplaying", Context.MODE_PRIVATE)
+    val savedGuid = prefs.getString("guid", null)
+
     val token = SessionToken(context, ComponentName(context, PlaybackService::class.java))
     val future = MediaController.Builder(context, token).buildAsync()
     future.addListener(
-      { controller = future.get() },
+      {
+        controller = future.get()
+
+        // Best-effort restore: if the controller comes up with no current item, preload the last
+        // known episode so the mini-player / Continue card have something to open.
+        val c = controller
+        if (c != null && c.currentMediaItem == null && !savedGuid.isNullOrBlank()) {
+          scope.launch {
+            val ep = repo.getEpisodeByGuid(savedGuid) ?: return@launch
+            // Preload, don't autoplay.
+            val c0 = controller ?: return@launch
+            val podcast = runCatching { db.podcasts().getById(ep.podcastId) }.getOrNull()
+            val podcastTitle = podcast?.title
+            val artworkUri = podcast?.imageUrl?.takeIf { it.isNotBlank() }?.let { runCatching { Uri.parse(it) }.getOrNull() }
+
+            val item = MediaItem.Builder()
+              .setMediaId(ep.guid)
+              .setUri(ep.localFileUri ?: ep.audioUrl)
+              .setMediaMetadata(
+                MediaMetadata.Builder()
+                  .setTitle(podcastTitle ?: "Podcast")
+                  .setSubtitle(ep.title)
+                  .setArtworkUri(artworkUri)
+                  .build()
+              )
+              .build()
+
+            c0.setMediaItem(item)
+            c0.setPlaybackParameters(PlaybackParameters(playbackSpeed, playbackPitch))
+            c0.prepare()
+            // Apply saved position (best-effort)
+            val introMs = PlaybackPrefs.getTrimIntroMs(context, ep.podcastId)
+            val initialSeekMs = maxOf(ep.lastPositionMs, introMs)
+            if (ep.completed == 0 && initialSeekMs > 5_000) c0.seekTo(initialSeekMs)
+            else if (ep.completed == 0 && introMs > 0L) c0.seekTo(introMs)
+
+            // Update UI state so mini-player/continue are populated.
+            nowGuid = ep.guid
+            nowTitle = ep.title
+            nowPodcastId = ep.podcastId
+            nowPodcastTitle = podcast?.title
+            nowArtworkUrl = podcast?.imageUrl
+            nowEpisodeDate = ep.publishedAtMs?.let { ms -> com.birch.podcast.ui.formatEpochMsShort(ms) }
+            chapters = emptyList()
+          }
+        }
+      },
       ContextCompat.getMainExecutor(context)
     )
   }
@@ -475,6 +525,11 @@ private fun BirchApp() {
         nowGuid = mediaItem?.mediaId
         nowTitle = mediaItem?.mediaMetadata?.title?.toString()
         chapters = emptyList()
+
+        // Persist current guid for best-effort restore after cold start.
+        val guid0 = mediaItem?.mediaId
+        val prefs = context.getSharedPreferences("birch_nowplaying", Context.MODE_PRIVATE)
+        prefs.edit().putString("guid", guid0).apply()
 
         val guid = mediaItem?.mediaId ?: return
         scope.launch {
@@ -556,6 +611,8 @@ private fun BirchApp() {
     audioUrl: String,
     podcastId: Long? = null,
     ignoreSavedPosition: Boolean = false,
+    autoplay: Boolean = true,
+    addToHistory: Boolean = true,
   ) {
     val c = controller ?: return
 
@@ -628,7 +685,7 @@ private fun BirchApp() {
       })
 
       // History
-      if (effectivePodcastId != null) {
+      if (addToHistory && effectivePodcastId != null) {
         repo.addToHistory(effectivePodcastId, guid, title)
       }
 
@@ -643,7 +700,7 @@ private fun BirchApp() {
         c.seekTo(introMs)
       }
 
-      c.play()
+      if (autoplay) c.play()
     }
   }
 
@@ -1033,6 +1090,7 @@ private fun BirchApp() {
           val vm = remember { QueueViewModel(repo) }
           QueueScreen(
             vm = vm,
+            nowPlayingGuid = controller?.currentMediaItem?.mediaId,
             onBack = { nav.popBackStack() },
             onPlayNow = { item ->
               val current = controller?.currentMediaItem?.mediaId

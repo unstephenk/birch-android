@@ -55,6 +55,7 @@ import com.birch.podcast.data.db.QueueItemEntity
 @Composable
 fun QueueScreen(
   vm: QueueViewModel,
+  nowPlayingGuid: String?,
   onBack: () -> Unit,
   onPlayNow: (QueueItemEntity) -> Unit,
 ) {
@@ -161,6 +162,7 @@ fun QueueScreen(
               Column {
                 QueueRow(
                   item = item,
+                  isNowPlaying = nowPlayingGuid == item.episodeGuid,
                   canMoveUp = idx > 0,
                   canMoveDown = idx != -1 && idx < queue.lastIndex,
                   dragHandleModifier = Modifier.detectReorderAfterLongPress(reorderState),
@@ -184,6 +186,7 @@ fun QueueScreen(
 @Composable
 private fun QueueRow(
   item: QueueItemEntity,
+  isNowPlaying: Boolean,
   canMoveUp: Boolean,
   canMoveDown: Boolean,
   dragHandleModifier: Modifier,
@@ -212,9 +215,9 @@ private fun QueueRow(
         overflow = TextOverflow.Ellipsis,
       )
       Text(
-        "Up next",
+        if (isNowPlaying) "Now playing" else "Up next",
         style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = if (isNowPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
       )
     }
 

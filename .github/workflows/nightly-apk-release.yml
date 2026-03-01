@@ -1,0 +1,43 @@
+name: Nightly APK Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: birch-nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Validate Gradle Wrapper
+        uses: gradle/wrapper-validation-action@v2
+
+      - name: Build Debug APK
+        run: ./gradlew :app:assembleDebug
+
+      - name: Create/Update Nightly Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: nightly
+          name: Nightly
+          prerelease: true
+          generate_release_notes: false
+          files: app/build/outputs/apk/debug/app-debug.apk
