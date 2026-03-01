@@ -598,6 +598,9 @@ private fun BirchApp() {
       playbackSpeed = speed
       playbackPitch = pitch
 
+      // Prepare first so subsequent seek reliably applies (some devices ignore seek before prepare).
+      c.prepare()
+
       // Persist and cache episode context for UI
       nowPodcastId = effectivePodcastId
       nowPodcastTitle = podcast?.title
@@ -634,7 +637,6 @@ private fun BirchApp() {
         c.seekTo(introMs)
       }
 
-      c.prepare()
       c.play()
     }
   }
