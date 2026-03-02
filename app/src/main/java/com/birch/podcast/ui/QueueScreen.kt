@@ -63,6 +63,7 @@ fun QueueScreen(
   var confirmClear by remember { mutableStateOf(false) }
   var confirmRemoveDuplicates by remember { mutableStateOf(false) }
   var confirmClearCompleted by remember { mutableStateOf(false) }
+  var confirmClearFinished by remember { mutableStateOf(false) }
   var menuOpen by remember { mutableStateOf(false) }
 
   Scaffold(
@@ -91,6 +92,14 @@ fun QueueScreen(
               onClick = {
                 menuOpen = false
                 confirmClearCompleted = true
+              }
+            )
+            DropdownMenuItem(
+              text = { Text("Clear finished (near end)") },
+              enabled = queue.isNotEmpty(),
+              onClick = {
+                menuOpen = false
+                confirmClearFinished = true
               }
             )
             DropdownMenuItem(
@@ -137,6 +146,23 @@ fun QueueScreen(
           ) { Text("Remove") }
         },
         dismissButton = { TextButton(onClick = { confirmClearCompleted = false }) { Text("Cancel") } }
+      )
+    }
+
+    if (confirmClearFinished) {
+      AlertDialog(
+        onDismissRequest = { confirmClearFinished = false },
+        title = { Text("Clear finished from queue?") },
+        text = { Text("Removes items already played, or within the last ~15s of the episode.") },
+        confirmButton = {
+          TextButton(
+            onClick = {
+              confirmClearFinished = false
+              vm.clearFinished()
+            }
+          ) { Text("Remove") }
+        },
+        dismissButton = { TextButton(onClick = { confirmClearFinished = false }) { Text("Cancel") } }
       )
     }
 
@@ -191,10 +217,12 @@ fun QueueScreen(
               }
             )
 
+            val isNowPlaying = nowPlayingGuid == item.episodeGuid
+
             SwipeToDismissBox(
               state = dismissState,
               enableDismissFromStartToEnd = false,
-              enableDismissFromEndToStart = true,
+              enableDismissFromEndToStart = !isNowPlaying,
               backgroundContent = {
                 Box(
                   modifier = Modifier
@@ -214,7 +242,7 @@ fun QueueScreen(
               Column {
                 QueueRow(
                   item = item,
-                  isNowPlaying = nowPlayingGuid == item.episodeGuid,
+                  isNowPlaying = isNowPlaying,
                   canMoveUp = idx > 0,
                   canMoveDown = idx != -1 && idx < queue.lastIndex,
                   dragHandleModifier = Modifier.detectReorderAfterLongPress(reorderState),

@@ -228,6 +228,19 @@ class PodcastRepository(
     }
   }
 
+  suspend fun clearFinishedFromQueue(nearEndMs: Long = 15_000L) {
+    val items = db.queue().list()
+    items.forEach { it ->
+      val ep = db.episodes().getByGuid(it.episodeGuid)
+      if (ep != null) {
+        val nearEnd = ep.durationMs > 0 && ep.lastPositionMs >= (ep.durationMs - nearEndMs)
+        if (ep.completed == 1 || nearEnd) {
+          db.queue().delete(it.id)
+        }
+      }
+    }
+  }
+
   suspend fun moveQueueItemToTop(id: Long) {
     val items = db.queue().list()
     val idx = items.indexOfFirst { it.id == id }
