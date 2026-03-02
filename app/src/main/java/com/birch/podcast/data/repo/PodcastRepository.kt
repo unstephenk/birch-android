@@ -207,6 +207,27 @@ class PodcastRepository(
     db.queue().delete(id)
   }
 
+  suspend fun removeDuplicateQueueItems() {
+    val items = db.queue().list()
+    val seen = HashSet<String>()
+    // Keep the earliest item (lowest position) for each guid.
+    items.sortedBy { it.position }.forEach { it ->
+      if (!seen.add(it.episodeGuid)) {
+        db.queue().delete(it.id)
+      }
+    }
+  }
+
+  suspend fun clearCompletedFromQueue() {
+    val items = db.queue().list()
+    items.forEach { it ->
+      val ep = db.episodes().getByGuid(it.episodeGuid)
+      if (ep != null && ep.completed == 1) {
+        db.queue().delete(it.id)
+      }
+    }
+  }
+
   suspend fun moveQueueItemToTop(id: Long) {
     val items = db.queue().list()
     val idx = items.indexOfFirst { it.id == id }

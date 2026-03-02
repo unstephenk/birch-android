@@ -15,7 +15,7 @@ This repo is intentionally small and iterative: the goal is a fast, usable playe
 
 - **Episodes**
   - Search by title/summary
-  - Filters: All / Unplayed / Downloaded
+  - Filters: All / Unplayed / Downloaded / In progress
   - Sorts downloaded (“saved”) episodes to the top
   - Tap to play, long-press to add to queue
   - Mark played/unplayed (row check + played badge)
@@ -27,6 +27,7 @@ This repo is intentionally small and iterative: the goal is a fast, usable playe
   - Move up/down
   - Swipe to remove
   - Clear queue (with confirmation)
+  - Clear completed + remove duplicates (menu actions)
 
 - **Playback**
   - Now Playing screen (timeline + seek)

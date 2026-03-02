@@ -24,6 +24,14 @@ class QueueViewModel(
     viewModelScope.launch { repo.clearQueue() }
   }
 
+  fun removeDuplicates() {
+    viewModelScope.launch { repo.removeDuplicateQueueItems() }
+  }
+
+  fun clearCompleted() {
+    viewModelScope.launch { repo.clearCompletedFromQueue() }
+  }
+
   fun moveUp(id: Long) {
     viewModelScope.launch { repo.moveQueueItem(id, -1) }
   }

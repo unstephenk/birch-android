@@ -61,6 +61,8 @@ fun QueueScreen(
 ) {
   val queue by vm.queue.collectAsState()
   var confirmClear by remember { mutableStateOf(false) }
+  var confirmRemoveDuplicates by remember { mutableStateOf(false) }
+  var confirmClearCompleted by remember { mutableStateOf(false) }
   var menuOpen by remember { mutableStateOf(false) }
 
   Scaffold(
@@ -76,11 +78,27 @@ fun QueueScreen(
           }
           DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
             DropdownMenuItem(
-              text = { Text("Clear upcoming (keep playing)") },
+              text = { Text("Clear upcoming") },
               enabled = queue.isNotEmpty(),
               onClick = {
                 menuOpen = false
                 confirmClear = true
+              }
+            )
+            DropdownMenuItem(
+              text = { Text("Clear completed") },
+              enabled = queue.isNotEmpty(),
+              onClick = {
+                menuOpen = false
+                confirmClearCompleted = true
+              }
+            )
+            DropdownMenuItem(
+              text = { Text("Remove duplicates") },
+              enabled = queue.isNotEmpty(),
+              onClick = {
+                menuOpen = false
+                confirmRemoveDuplicates = true
               }
             )
           }
@@ -91,8 +109,8 @@ fun QueueScreen(
     if (confirmClear) {
       AlertDialog(
         onDismissRequest = { confirmClear = false },
-        title = { Text("Clear upcoming?") },
-        text = { Text("This clears upcoming items in the queue. Current playback will continue.") },
+        title = { Text("Clear queue?") },
+        text = { Text("This clears all upcoming items in the queue.") },
         confirmButton = {
           TextButton(
             onClick = {
@@ -102,6 +120,40 @@ fun QueueScreen(
           ) { Text("Clear") }
         },
         dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("Cancel") } }
+      )
+    }
+
+    if (confirmClearCompleted) {
+      AlertDialog(
+        onDismissRequest = { confirmClearCompleted = false },
+        title = { Text("Clear completed from queue?") },
+        text = { Text("This removes items from the queue that are already marked played.") },
+        confirmButton = {
+          TextButton(
+            onClick = {
+              confirmClearCompleted = false
+              vm.clearCompleted()
+            }
+          ) { Text("Remove") }
+        },
+        dismissButton = { TextButton(onClick = { confirmClearCompleted = false }) { Text("Cancel") } }
+      )
+    }
+
+    if (confirmRemoveDuplicates) {
+      AlertDialog(
+        onDismissRequest = { confirmRemoveDuplicates = false },
+        title = { Text("Remove duplicates?") },
+        text = { Text("This keeps the first occurrence of each episode and removes the rest.") },
+        confirmButton = {
+          TextButton(
+            onClick = {
+              confirmRemoveDuplicates = false
+              vm.removeDuplicates()
+            }
+          ) { Text("Remove") }
+        },
+        dismissButton = { TextButton(onClick = { confirmRemoveDuplicates = false }) { Text("Cancel") } }
       )
     }
 
