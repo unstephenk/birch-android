@@ -76,11 +76,11 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 Next 15 features/improvements (rough priority order):
 
-1. **Proper “Play next” semantics**: insert right after the currently playing item (not just “top of queue”).
+1. **Proper “Play next” semantics**: insert right after the currently playing item (not just “top of queue”). ✅ (dedupe + move-to-next behavior)
 2. **Queue: now-playing highlighting** (visual “Now playing” row + disable pointless actions on it). ✅
 3. **Queue: remove duplicates** (one-tap cleanup). ✅
 4. **Queue: clear played/finished** (keep queue tidy). ✅
-5. **Mini-player polish**: show podcast + episode, progress, and a clear “tap to open” affordance.
+5. **Mini-player polish**: show podcast + episode, progress, and a clear “tap to open” affordance. ✅
 6. **Persist/restore last-playing** on cold start (preload last episode without autoplay).
 7. **Downloads screen upgrades**: bulk delete, show sizes, and better failure visibility.
 8. **Episode list UX**: “In progress” filter, better resume hints, and consistent long-press actions.

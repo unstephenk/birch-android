@@ -316,26 +316,27 @@ private fun QueueRow(
         DropdownMenuItem(
           text = { Text("Move to top") },
           onClick = { menuOpen = false; onMoveTop() },
-          enabled = canMoveUp,
+          enabled = !isNowPlaying && canMoveUp,
         )
         DropdownMenuItem(
           text = { Text("Move to bottom") },
           onClick = { menuOpen = false; onMoveBottom() },
-          enabled = canMoveDown,
+          enabled = !isNowPlaying && canMoveDown,
         )
         DropdownMenuItem(
           text = { Text("Move up") },
           onClick = { menuOpen = false; onMoveUp() },
-          enabled = canMoveUp,
+          enabled = !isNowPlaying && canMoveUp,
         )
         DropdownMenuItem(
           text = { Text("Move down") },
           onClick = { menuOpen = false; onMoveDown() },
-          enabled = canMoveDown,
+          enabled = !isNowPlaying && canMoveDown,
         )
         DropdownMenuItem(
           text = { Text("Remove") },
           onClick = { menuOpen = false; onRemove() },
+          enabled = !isNowPlaying,
         )
       }
 

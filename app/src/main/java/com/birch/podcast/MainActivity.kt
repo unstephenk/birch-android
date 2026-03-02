@@ -1214,12 +1214,20 @@ private fun MiniPlayerBar(
         )
       }
 
-      if (durationMs > 0) {
+      val showSeek = durationMs > 0
+      if (showSeek) {
         val value = (positionMs.toFloat() / durationMs.toFloat()).coerceIn(0f, 1f)
         Slider(
           value = value,
           onValueChange = { v -> onSeekTo((v * durationMs.toFloat()).toLong()) },
-          modifier = Modifier.fillMaxWidth()
+          modifier = Modifier.fillMaxWidth(),
+        )
+
+        // Time hint
+        Text(
+          text = "${com.birch.podcast.ui.fmtDurationMs(positionMs)} / ${com.birch.podcast.ui.fmtDurationMs(durationMs)}",
+          style = MaterialTheme.typography.labelSmall,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
       }
 
