@@ -37,4 +37,7 @@ interface QueueDao {
 
   @Query("SELECT COUNT(*) FROM queue_items WHERE episodeGuid = :guid")
   suspend fun countByGuid(guid: String): Int
+
+  @Query("SELECT * FROM queue_items WHERE episodeGuid = :guid LIMIT 1")
+  suspend fun getByGuid(guid: String): QueueItemEntity?
 }

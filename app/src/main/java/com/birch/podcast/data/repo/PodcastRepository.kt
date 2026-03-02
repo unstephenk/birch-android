@@ -122,7 +122,20 @@ class PodcastRepository(
   }
 
   suspend fun enqueueNext(title: String, guid: String, audioUrl: String) {
-    val pos = (db.queue().minPosition() ?: 0L) - 1L
+    // "Play next" semantics: ensure this episode becomes the next-up item.
+    // If it already exists in the queue, move it to the top instead of duplicating it.
+    val existing = db.queue().getByGuid(guid)
+    val topPos = (db.queue().minPosition() ?: 0L)
+
+    if (existing != null) {
+      val newPos = topPos - 1L
+      // Avoid unique index collisions on position.
+      db.queue().updatePosition(existing.id, -1L)
+      db.queue().updatePosition(existing.id, newPos)
+      return
+    }
+
+    val pos = topPos - 1L
     db.queue().insert(
       QueueItemEntity(
         episodeGuid = guid,
