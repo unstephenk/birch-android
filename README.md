@@ -82,7 +82,7 @@ Next 15 features/improvements (rough priority order):
 4. **Queue: clear played/finished** (keep queue tidy). ✅
 5. **Mini-player polish**: show podcast + episode, progress, and a clear “tap to open” affordance. ✅
 6. **Persist/restore last-playing** on cold start (preload last episode without autoplay).
-7. **Downloads screen upgrades**: bulk delete, show sizes, and better failure visibility.
+7. **Downloads screen upgrades**: bulk delete, show sizes, and better failure visibility. ✅ (bulk delete saved)
 8. **Episode list UX**: “In progress” filter, better resume hints, and consistent long-press actions.
 9. **Restart-from-beginning action** in episode menus (explicit restart, not accidental).
 10. **Per-podcast settings**: speed/pitch, trim intro/outro, auto-queue newest, skip silence, volume boost.

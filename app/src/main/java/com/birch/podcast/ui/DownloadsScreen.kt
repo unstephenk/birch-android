@@ -59,6 +59,7 @@ fun DownloadsScreen(
   val failed by repo.observeFailedDownloads().collectAsState(initial = emptyList())
 
   var menuOpen by remember { mutableStateOf(false) }
+  var confirmClearAllSaved by remember { mutableStateOf(false) }
 
   Scaffold(
     topBar = {
@@ -98,11 +99,51 @@ fun DownloadsScreen(
                 onClearAllFailed(failed)
               },
             )
+            DropdownMenuItem(
+              text = { Text("Delete all saved") },
+              enabled = saved.isNotEmpty(),
+              onClick = {
+                menuOpen = false
+                confirmClearAllSaved = true
+              },
+            )
           }
         }
       )
     }
   ) { padding ->
+    if (confirmClearAllSaved) {
+      androidx.compose.material3.AlertDialog(
+        onDismissRequest = { confirmClearAllSaved = false },
+        title = { Text("Delete all saved episodes?") },
+        text = { Text("This will remove all downloaded files from storage.") },
+        confirmButton = {
+          androidx.compose.material3.TextButton(
+            onClick = {
+              confirmClearAllSaved = false
+              scope.launch {
+                val eps = saved.toList()
+                eps.forEach { ep ->
+                  val local = ep.localFileUri
+                  if (!local.isNullOrBlank()) {
+                    runCatching {
+                      val uri = Uri.parse(local)
+                      context.contentResolver.delete(uri, null, null)
+                    }
+                  }
+                  repo.clearEpisodeDownload(ep.guid)
+                  repo.setEpisodeDownloadStatus(ep.guid, null, null)
+                }
+              }
+            }
+          ) { Text("Delete") }
+        },
+        dismissButton = {
+          androidx.compose.material3.TextButton(onClick = { confirmClearAllSaved = false }) { Text("Cancel") }
+        }
+      )
+    }
+
     LazyColumn(modifier = Modifier.fillMaxSize().padding(padding)) {
       item {
         SectionHeader("Downloading")

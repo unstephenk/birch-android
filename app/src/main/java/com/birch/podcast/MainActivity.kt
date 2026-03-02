@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Card
@@ -1241,7 +1242,15 @@ private fun MiniPlayerBar(
         IconButton(onClick = onForward30) {
           Icon(Icons.Filled.FastForward, contentDescription = "Forward 30")
         }
+
         Spacer(Modifier.weight(1f))
+
+        // Make "tap to open" obvious.
+        Icon(
+          imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+          contentDescription = "Open now playing",
+          tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
       }
     }
   }
