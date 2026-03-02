@@ -71,6 +71,26 @@ app/build/outputs/apk/debug/app-debug.apk
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
+## Roadmap (next up)
+
+Next 15 features/improvements (rough priority order):
+
+1. **Proper “Play next” semantics**: insert right after the currently playing item (not just “top of queue”).
+2. **Queue: now-playing highlighting** (visual “Now playing” row + disable pointless actions on it).
+3. **Queue: remove duplicates** (one-tap cleanup).
+4. **Queue: clear played/finished** (keep queue tidy).
+5. **Mini-player polish**: show podcast + episode, progress, and a clear “tap to open” affordance.
+6. **Persist/restore last-playing** on cold start (preload last episode without autoplay).
+7. **Downloads screen upgrades**: bulk delete, show sizes, and better failure visibility.
+8. **Episode list UX**: “In progress” filter, better resume hints, and consistent long-press actions.
+9. **Restart-from-beginning action** in episode menus (explicit restart, not accidental).
+10. **Per-podcast settings**: speed/pitch, trim intro/outro, auto-queue newest, skip silence, volume boost.
+11. **OPML import/export** for subscriptions.
+12. **Better refresh UX**: per-show refresh state, last refreshed timestamp, and error surfacing.
+13. **Playback robustness**: audio focus edge cases, BT disconnect/reconnect, and controller rebind behavior.
+14. **Search upgrades**: filter by show, downloaded, in-progress; sort by date/length.
+15. **Release pipeline**: stable “nightly/latest” APK download link (in addition to Actions artifacts).
+
 ## Notes / known behaviors
 
 - Some emulators/devices don’t report total size to `DownloadManager` early, so the app may show an indeterminate spinner until size is known.
