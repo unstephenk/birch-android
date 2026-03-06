@@ -11,11 +11,22 @@ import androidx.media3.session.DefaultMediaNotificationProvider
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import androidx.media3.session.SessionResult
+import com.birch.podcast.data.db.AppDatabase
+import com.birch.podcast.data.repo.PodcastRepository
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @androidx.media3.common.util.UnstableApi
 class PlaybackService : MediaSessionService() {
+
+  private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+  private val repo by lazy { PodcastRepository(AppDatabase.get(this)) }
 
   private var player: ExoPlayer? = null
   private var mediaSession: MediaSession? = null
@@ -31,31 +42,67 @@ class PlaybackService : MediaSessionService() {
       .setSeekBackIncrementMs(15_000)
       .setSeekForwardIncrementMs(30_000)
       .build().apply {
-      setAudioAttributes(
-        AudioAttributes.Builder()
-          .setUsage(C.USAGE_MEDIA)
-          .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
-          .build(),
-        /* handleAudioFocus= */ true
-      )
-      setHandleAudioBecomingNoisy(true)
-      repeatMode = Player.REPEAT_MODE_OFF
+        setAudioAttributes(
+          AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
+            .build(),
+          /* handleAudioFocus= */ true
+        )
+        setHandleAudioBecomingNoisy(true)
+        repeatMode = Player.REPEAT_MODE_OFF
 
-      addListener(object : Player.Listener {
-        override fun onAudioSessionIdChanged(audioSessionId: Int) {
-          if (audioSessionId == 0) return
-          // Recreate when session id changes.
-          loudnessEnhancer?.release()
-          loudnessEnhancer = runCatching {
-            LoudnessEnhancer(audioSessionId).apply {
-              // 1200 mB ~= +12 dB. Keep it modest.
-              setTargetGain(1200)
-              enabled = boostEnabled
-            }
-          }.getOrNull()
+        fun persistProgressBestEffort(completed: Boolean = false) {
+          val guid = currentMediaItem?.mediaId ?: return
+          val pos = currentPosition
+          val dur = duration
+          // Only persist if duration is known; avoids poisoning DB with -1.
+          if (dur <= 0) return
+
+          serviceScope.launch {
+            repo.updateEpisodePlayback(
+              guid = guid,
+              positionMs = if (completed) dur else pos,
+              durationMs = dur,
+              completed = completed,
+            )
+          }
         }
-      })
-    }
+
+        addListener(object : Player.Listener {
+          override fun onAudioSessionIdChanged(audioSessionId: Int) {
+            if (audioSessionId == 0) return
+            // Recreate when session id changes.
+            loudnessEnhancer?.release()
+            loudnessEnhancer = runCatching {
+              LoudnessEnhancer(audioSessionId).apply {
+                // 1200 mB ~= +12 dB. Keep it modest.
+                setTargetGain(1200)
+                enabled = boostEnabled
+              }
+            }.getOrNull()
+          }
+
+          override fun onIsPlayingChanged(isPlaying: Boolean) {
+            // Persist when pausing/stopping.
+            if (!isPlaying) persistProgressBestEffort(completed = false)
+          }
+
+          override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_ENDED) {
+              persistProgressBestEffort(completed = true)
+            }
+          }
+        })
+
+        // Periodic persistence while playing (best-effort).
+        serviceScope.launch {
+          while (true) {
+            delay(3_000)
+            if (isPlaying) persistProgressBestEffort(completed = false)
+          }
+        }
+      }
     player = p
 
     mediaSession = MediaSession.Builder(this, p)
@@ -157,6 +204,8 @@ class PlaybackService : MediaSessionService() {
 
     player?.release()
     player = null
+
+    serviceScope.cancel()
 
     super.onDestroy()
   }
