@@ -58,6 +58,9 @@ class PlaybackService : MediaSessionService() {
           val dur = duration
           // Only persist if duration is known; avoids poisoning DB with -1.
           if (dur <= 0) return
+          // Ignore bogus/uninitialized progress writes unless we're explicitly
+          // marking completion.
+          if (!completed && pos <= 0) return
 
           serviceScope.launch {
             repo.updateEpisodePlayback(
@@ -95,10 +98,10 @@ class PlaybackService : MediaSessionService() {
           }
         })
 
-        // Periodic persistence while playing (best-effort).
+        // Periodic persistence while actively playing.
         serviceScope.launch {
           while (true) {
-            delay(3_000)
+            delay(5_000)
             if (isPlaying) persistProgressBestEffort(completed = false)
           }
         }

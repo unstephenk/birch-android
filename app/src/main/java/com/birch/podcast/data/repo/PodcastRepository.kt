@@ -156,11 +156,22 @@ class PodcastRepository(
     durationMs: Long,
     completed: Boolean,
   ) {
+    val existing = db.episodes().getByGuid(guid)
+
+    // Don't let a stale writer clobber a better saved resume point.
+    val safePositionMs = when {
+      completed -> durationMs
+      positionMs <= 0L -> existing?.lastPositionMs ?: 0L
+      existing != null && existing.completed == 0 && positionMs < existing.lastPositionMs -> existing.lastPositionMs
+      else -> positionMs
+    }
+    val safeCompleted = if (completed) 1 else (existing?.completed ?: 0)
+
     db.episodes().updatePlayback(
       guid = guid,
-      positionMs = positionMs,
-      durationMs = durationMs,
-      completed = if (completed) 1 else 0,
+      positionMs = safePositionMs,
+      durationMs = maxOf(durationMs, existing?.durationMs ?: 0L),
+      completed = safeCompleted,
       playedAtMs = System.currentTimeMillis(),
     )
   }

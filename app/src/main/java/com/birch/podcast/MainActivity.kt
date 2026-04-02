@@ -570,12 +570,12 @@ private fun BirchApp() {
     onDispose { c?.removeListener(listener) }
   }
 
-  // Position/duration ticker + persist playback
+  // Position/duration ticker. Persistence lives in PlaybackService so we don't
+  // have multiple writers fighting over resume state.
   LaunchedEffect(controller) {
     // Apply saved playback speed/pitch whenever we get a controller.
     controller?.setPlaybackParameters(PlaybackParameters(playbackSpeed, playbackPitch))
 
-    var lastPersistAt = 0L
     while (true) {
       val c = controller
       positionMs = c?.currentPosition ?: 0L
@@ -585,21 +585,6 @@ private fun BirchApp() {
       val outroMs = nowTrimOutroMs
       if (outroMs > 0 && durationMs > 0 && durationMs - positionMs in 1..outroMs) {
         c?.seekTo(durationMs)
-      }
-
-      val guid = c?.currentMediaItem?.mediaId
-      val now = System.currentTimeMillis()
-      if (guid != null && durationMs > 0 && now - lastPersistAt > 3_000) {
-        lastPersistAt = now
-        // best-effort persistence
-        scope.launch {
-          repo.updateEpisodePlayback(
-            guid = guid,
-            positionMs = positionMs,
-            durationMs = durationMs,
-            completed = false,
-          )
-        }
       }
 
       delay(500)
