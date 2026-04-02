@@ -9,7 +9,14 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PodcastDao {
-  @Query("SELECT * FROM podcasts ORDER BY id DESC")
+  @Query(
+    """
+    SELECT * FROM podcasts
+    ORDER BY COALESCE((SELECT MAX(e.publishedAtMs) FROM episodes e WHERE e.podcastId = podcasts.id), 0) DESC,
+             COALESCE(lastRefreshAtMs, 0) DESC,
+             id DESC
+    """
+  )
   fun observeAll(): Flow<List<PodcastEntity>>
 
   @Query("SELECT * FROM podcasts WHERE id = :id")

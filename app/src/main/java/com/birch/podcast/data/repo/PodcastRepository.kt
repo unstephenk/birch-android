@@ -165,12 +165,23 @@ class PodcastRepository(
       existing != null && existing.completed == 0 && positionMs < existing.lastPositionMs -> existing.lastPositionMs
       else -> positionMs
     }
-    val safeCompleted = if (completed) 1 else (existing?.completed ?: 0)
+
+    val effectiveDurationMs = maxOf(durationMs, existing?.durationMs ?: 0L)
+    val nearEndThresholdMs = 15_000L
+    val nearEnd = effectiveDurationMs > 0L && safePositionMs >= (effectiveDurationMs - nearEndThresholdMs)
+
+    // Once an episode is marked played, keep it played unless the user explicitly
+    // marks it unplayed/restarts it.
+    val safeCompleted = when {
+      completed || nearEnd -> 1
+      existing?.completed == 1 -> 1
+      else -> 0
+    }
 
     db.episodes().updatePlayback(
       guid = guid,
       positionMs = safePositionMs,
-      durationMs = maxOf(durationMs, existing?.durationMs ?: 0L),
+      durationMs = effectiveDurationMs,
       completed = safeCompleted,
       playedAtMs = System.currentTimeMillis(),
     )
